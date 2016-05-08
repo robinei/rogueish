@@ -16,6 +16,7 @@ map.forNeighbours(40, 20, 10, (x, y) => {
     map.setFlag(x, y, CellFlag.Walkable);
     return true;
 });
+map.recalcWalls();
 
 function runApp() {
     window.addEventListener('resize', resizeCanvas);
@@ -30,21 +31,21 @@ function onClick(e: MouseEvent) {
     const p = mapDrawer.canvasCoordToWorldTileCoord(e.clientX, e.clientY);
     mapDrawer.corner.x = p.x - Math.floor(0.5 * canvas.width / TILE_DIM);
     mapDrawer.corner.y = p.y - Math.floor(0.5 * canvas.height / TILE_DIM);
-    drawCanvas();
+    window.requestAnimationFrame(drawCanvas);
 }
 
 function onKeyDown(e: KeyboardEvent) {
-    if (e.keyCode == 37) { // left
+    if (e.keyCode === 37) { // left
         --mapDrawer.corner.x;
-    } else if (e.keyCode == 38) { // up
+    } else if (e.keyCode === 38) { // up
         --mapDrawer.corner.y;
-    } else if (e.keyCode == 39) { // right
+    } else if (e.keyCode === 39) { // right
         ++mapDrawer.corner.x;
-    } else if (e.keyCode == 40) { // down
+    } else if (e.keyCode === 40) { // down
         ++mapDrawer.corner.y;
-    } else if (e.keyCode == 32) { // space
+    } else if (e.keyCode === 32) { // space
     }
-    drawCanvas();
+    window.requestAnimationFrame(drawCanvas);
 }
 
 function onMouseMove(e: MouseEvent) {
@@ -59,26 +60,17 @@ function onMouseMove(e: MouseEvent) {
         map.setFlag(x, y, CellFlag.Visible | CellFlag.Discovered);
     }, (x, y) => !map.isWalkable(x, y));
     
-    drawCanvas();
+    window.requestAnimationFrame(drawCanvas);
 }
 
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    drawCanvas(); 
+    window.requestAnimationFrame(drawCanvas);
 }
 
 function drawCanvas() {
-    context.globalCompositeOperation = 'copy';
-    context.fillStyle = 'rgba(0, 0, 0, 0)';
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    context.globalCompositeOperation = 'source-over';
-    
+    context.clearRect(0, 0, canvas.width, canvas.height);
     mapDrawer.draw(canvas, context);
-    
-    context.globalCompositeOperation = 'destination-over';
-    context.fillStyle = 'black';
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    context.globalCompositeOperation = 'source-over';
 }
 

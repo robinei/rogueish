@@ -27,7 +27,7 @@ export class Vec2 {
         const dx = sigNum(this.x);
         const dy = sigNum(this.y);
         for (let i = 0; i < 8; ++i) {
-            if (dirDX[i] == dx && dirDY[i] == dy) {
+            if (dirDX[i] === dx && dirDY[i] === dy) {
                 return i;
             }
         }

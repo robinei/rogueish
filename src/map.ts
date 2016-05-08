@@ -8,6 +8,7 @@ export enum CellFlag {
     Walkable = 1,
     Visible = 2,
     Discovered = 4,
+    Wall = 8,
 }
 
 export class Map {
@@ -35,6 +36,12 @@ export class Map {
         return new Vec2(index % this.width, Math.floor(index / this.width));
     };
     
+    getFlags = (x: number, y: number) => {
+        if (x < 0 || y < 0 || x >= this.width || y >= this.height) {
+            return 0;
+        }
+        return this.flags[y * this.width + x];
+    };
     isFlagSet = (x: number, y: number, flag: CellFlag) => {
         if (x < 0 || y < 0 || x >= this.width || y >= this.height) {
             return false;
@@ -62,6 +69,30 @@ export class Map {
         const max = this.width * this.height;
         for (let i = 0; i < max; ++i) {
             this.flags[i] &= ~CellFlag.Visible;
+        }
+    };
+    
+    recalcWalls = () => {
+        for (let y = 0; y < this.height; ++y) {
+            for (let x = 0; x < this.width; ++x) {
+                let isWall = false;
+                const flags = this.flags[y * this.width + x];
+                if ((flags & CellFlag.Walkable) === 0) {
+                    for (var dir = 0; dir < 8; ++dir) {
+                        var nx = x + dirDX[dir];
+                        var ny = y + dirDY[dir];
+                        if ((this.flags[ny * this.width + nx] & CellFlag.Walkable) != 0) {
+                            isWall = true;
+                            break;
+                        }
+                    }
+                }
+                if (isWall) {
+                    this.flags[y * this.width + x] = flags | CellFlag.Wall;
+                } else {
+                    this.flags[y * this.width + x] = flags & ~CellFlag.Wall;
+                }
+            }
         }
     };
     
@@ -111,7 +142,7 @@ export class Map {
     };
     
     private distanceCalc = (a: number, b: number) => {
-        if ((this.flags[b] & CellFlag.Walkable) == 0) {
+        if ((this.flags[b] & CellFlag.Walkable) === 0) {
             return Number.MAX_VALUE;
         }
         
@@ -132,7 +163,7 @@ export class Map {
         const startIndex = this.indexForPos(start);
         const goalIndex = this.indexForPos(goal);
         const pathIndexes = calcPath(this.width * this.height, startIndex, goalIndex, this.distanceCalc, this.calcNeigh);
-        if (pathIndexes == null) {
+        if (pathIndexes === null) {
             return null;
         }
         const path = new Array<Vec2>();

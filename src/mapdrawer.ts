@@ -1,4 +1,4 @@
-import { Map } from './map';
+import { Map, CellFlag } from './map';
 import { Vec2 } from './math';
 
 export const TILE_DIM = 12;
@@ -37,57 +37,124 @@ export class MapDrawer {
             context.drawImage(this.font, sx, sy, TILE_DIM, TILE_DIM, canvasX, canvasY, TILE_DIM, TILE_DIM);
         };
         
-        const forVisibleCells = (func: (canvasX: number, canvasY: number, cellX: number, cellY: number) => void) => {
-            for (let y = 0; ; ++y) {
-                const canvasY = y * TILE_DIM;
-                if (canvasY > canvas.height) {
+        let cellCount = 0;
+        const canvasX: number[] = [];
+        const canvasY: number[] = [];
+        const cellX: number[] = [];
+        const cellY: number[] = [];
+        const charCode: number[] = [];
+        const bgColor: string[] = [];
+        const fgColor: string[] = [];
+        const shaded: boolean[] = [];
+        
+        for (let y = 0; ; ++y) {
+            const canvasy = y * TILE_DIM;
+            if (canvasy > canvas.height) {
+                break;
+            }
+            for (let x = 0; ; ++x) {
+                const canvasx = x * TILE_DIM;
+                if (canvasx > canvas.width) {
                     break;
                 }
-                for (let x = 0; ; ++x) {
-                    const canvasX = x * TILE_DIM;
-                    if (canvasX > canvas.width) {
-                        break;
-                    }
-                    const cellX = x + this.corner.x;
-                    const cellY = y + this.corner.y;
-                    if (cellX < 0 || cellY < 0 || cellX >= this.map.width || cellY >= this.map.height) {
-                        continue;
-                    }
-                    func(canvasX, canvasY, cellX, cellY);
+                
+                const cellx = x + this.corner.x;
+                const celly = y + this.corner.y;
+                if (cellx < 0 || celly < 0 || cellx >= this.map.width || celly >= this.map.height) {
+                    continue;
                 }
+                
+                let flags = this.map.getFlags(cellx, celly);
+                /*if ((flags & CellFlag.Discovered) === 0) {
+                    continue;
+                }*/
+                
+                let charcode = '.'.charCodeAt(0);
+                let bgcolor = 'black';
+                let fgcolor = 'white';
+                if ((flags & CellFlag.Walkable) === 0) {
+                    if ((flags & CellFlag.Wall) != 0) {
+                        charcode = '#'.charCodeAt(0);
+                        fgcolor = 'yellow';
+                        bgcolor = 'darkgray';
+                    } else {
+                        charcode = '?'.charCodeAt(0);
+                        bgcolor = '#333333';
+                    }
+                }
+                
+                canvasX.push(canvasx);
+                canvasY.push(canvasy);
+                cellX.push(cellx);
+                cellY.push(celly);
+                charCode.push(charcode);
+                bgColor.push(bgcolor);
+                fgColor.push(fgcolor);
+                shaded.push((flags & CellFlag.Visible) === 0);
+                ++cellCount;
             }
-        };
+        }
         
         context.globalCompositeOperation = 'source-over';
-        forVisibleCells((canvasX, canvasY, cellX, cellY) => {
-            let charIndex = '.'.charCodeAt(0);
-            if (!this.map.isWalkable(cellX, cellY)) {
-                charIndex = '#'.charCodeAt(0);
-            }
-            drawChar(charIndex, canvasX, canvasY);
-        });
         
+        // draw background first using 'source-over' for tiles which have the default (white) or no foreground 
+        for (var i = 0; i < cellCount; ++i) {
+            if (bgColor[i] === 'black' || bgColor[i] === '#000000') {
+                continue; // black background is the default
+            }
+            if (fgColor[i] !== 'white' && fgColor[i] !== '#ffffff' && charCode[i] !== 0 && charCode[i] !== 32) {
+                continue; // non-white, visible characters need background drawn last, using 'destination-over'
+            }
+            if (context.fillStyle !== bgColor[i]) {
+                context.fillStyle = bgColor[i];
+            }
+            context.fillRect(canvasX[i], canvasY[i], TILE_DIM, TILE_DIM);
+        }
+        
+        // draw the foreground characters (using a white font)
+        for (var i = 0; i < cellCount; ++i) {
+            if (charCode[i] === 0 || charCode[i] === 32) {
+                continue;
+            }
+            drawChar(charCode[i], canvasX[i], canvasY[i]);
+        }
+        
+        // apply color onto non-white characters
         context.globalCompositeOperation = 'source-atop';
-        context.fillStyle = 'yellow';
-        forVisibleCells((canvasX, canvasY, cellX, cellY) => {
-            context.fillRect(canvasX, canvasY, TILE_DIM, TILE_DIM);
-        });
-        
-        context.globalCompositeOperation = 'destination-over';
-        context.fillStyle = 'darkgray';
-        forVisibleCells((canvasX, canvasY, cellX, cellY) => {
-            context.fillRect(canvasX, canvasY, TILE_DIM, TILE_DIM);
-        });
-        
-        context.globalCompositeOperation = 'source-over';
-        context.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        forVisibleCells((canvasX, canvasY, cellX, cellY) => {
-            if (!this.map.isVisible(cellX, cellY)) {
-                context.fillRect(canvasX, canvasY, TILE_DIM, TILE_DIM);
+        for (var i = 0; i < cellCount; ++i) {
+            if (fgColor[i] === 'white' || fgColor[i] === '#ffffff' || charCode[i] === 0 || charCode[i] === 32) {
+                continue; // white or invisible characters don't need to be colored
             }
-        });
+            if (context.fillStyle !== fgColor[i]) {
+                context.fillStyle = fgColor[i];
+            }
+            context.fillRect(canvasX[i], canvasY[i], TILE_DIM, TILE_DIM);
+        }
+        
+        // draw background underneath visible non-white characters
+        context.globalCompositeOperation = 'destination-over';
+        for (var i = 0; i < cellCount; ++i) {
+            if (bgColor[i] === 'black' || bgColor[i] === '#000000') {
+                continue; // black background is the default
+            }
+            if (fgColor[i] === 'white' || fgColor[i] === '#ffffff' || charCode[i] === 0 || charCode[i] === 32) {
+                continue; // white or invisible characters have already had their background drawn
+            }
+            if (context.fillStyle !== bgColor[i]) {
+                context.fillStyle = bgColor[i];
+            }
+            context.fillRect(canvasX[i], canvasY[i], TILE_DIM, TILE_DIM);
+        }
         
         context.globalCompositeOperation = 'source-over';
+        
+        context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        for (var i = 0; i < cellCount; ++i) {
+            if (shaded[i]) {
+                context.fillRect(canvasX[i], canvasY[i], TILE_DIM, TILE_DIM);
+            }
+        }
+        
         if (this.cursorPos) {
             const canvasCoord = this.canvasCoordForWorldTileCoord(this.cursorPos.x, this.cursorPos.y);
             context.fillStyle = "rgba(255, 255, 255, 0.3)";
