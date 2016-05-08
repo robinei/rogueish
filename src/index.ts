@@ -1,5 +1,6 @@
 import { Map, CellFlag } from './map';
 import { MapDrawer, TILE_DIM } from './mapdrawer';
+import { fieldOfView } from './fov';
 
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
 const context = canvas.getContext('2d');
@@ -52,6 +53,12 @@ function onMouseMove(e: MouseEvent) {
         return;
     }
     mapDrawer.cursorPos = pos;
+    
+    map.resetVisible();
+    fieldOfView(pos.x, pos.y, 100, (x, y) => {
+        map.setFlag(x, y, CellFlag.Visible | CellFlag.Discovered);
+    }, (x, y) => !map.isWalkable(x, y));
+    
     drawCanvas();
 }
 
