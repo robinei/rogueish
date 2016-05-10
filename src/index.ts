@@ -1,13 +1,11 @@
 import { Map, CellFlag } from './map';
-import { MapDrawer, TILE_DIM } from './mapdrawer';
+import { MapDrawer } from './mapdrawer';
+import { Display, CHAR_DIM } from './display';
 import { fieldOfView } from './fov';
+import { toStringColor, makeColor } from './color';
 
-const canvas = document.getElementById('canvas') as HTMLCanvasElement;
-const context = canvas.getContext('2d');
 
 const map = new Map(80, 50);
-const mapDrawer = new MapDrawer(map, runApp);
-
 map.forNeighbours(20, 20, 10, (x, y) => {
     map.setFlag(x, y, CellFlag.Walkable);
     return true;
@@ -18,6 +16,16 @@ map.forNeighbours(40, 20, 10, (x, y) => {
 });
 map.recalcWalls();
 
+
+const canvas = document.getElementById('canvas') as HTMLCanvasElement;
+const display = new Display(canvas, runApp, onDraw);
+const mapDrawer = new MapDrawer(map, display);
+
+
+function onDraw() {
+    mapDrawer.draw();
+}
+
 function runApp() {
     window.addEventListener('resize', resizeCanvas);
     document.addEventListener('keydown', onKeyDown);
@@ -26,12 +34,18 @@ function runApp() {
     resizeCanvas();
 }
 
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    display.reshape();
+}
+
 function onClick(e: MouseEvent) {
     console.log("click");
     const p = mapDrawer.canvasCoordToWorldTileCoord(e.clientX, e.clientY);
-    mapDrawer.corner.x = p.x - Math.floor(0.5 * canvas.width / TILE_DIM);
-    mapDrawer.corner.y = p.y - Math.floor(0.5 * canvas.height / TILE_DIM);
-    window.requestAnimationFrame(drawCanvas);
+    mapDrawer.corner.x = p.x - Math.floor(0.5 * canvas.width / CHAR_DIM);
+    mapDrawer.corner.y = p.y - Math.floor(0.5 * canvas.height / CHAR_DIM);
+    display.redraw();
 }
 
 function onKeyDown(e: KeyboardEvent) {
@@ -45,7 +59,7 @@ function onKeyDown(e: KeyboardEvent) {
         ++mapDrawer.corner.y;
     } else if (e.keyCode === 32) { // space
     }
-    window.requestAnimationFrame(drawCanvas);
+    display.redraw();
 }
 
 function onMouseMove(e: MouseEvent) {
@@ -60,17 +74,6 @@ function onMouseMove(e: MouseEvent) {
         map.setFlag(x, y, CellFlag.Visible | CellFlag.Discovered);
     }, (x, y) => !map.isWalkable(x, y));
     
-    window.requestAnimationFrame(drawCanvas);
-}
-
-function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    window.requestAnimationFrame(drawCanvas);
-}
-
-function drawCanvas() {
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    mapDrawer.draw(canvas, context);
+    display.redraw();
 }
 

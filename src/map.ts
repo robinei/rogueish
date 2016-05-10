@@ -81,6 +81,9 @@ export class Map {
                     for (var dir = 0; dir < 8; ++dir) {
                         var nx = x + dirDX[dir];
                         var ny = y + dirDY[dir];
+                        if (nx < 0 || ny < 0 || nx >= this.width || ny >= this.height) {
+                            continue;
+                        }
                         if ((this.flags[ny * this.width + nx] & CellFlag.Walkable) != 0) {
                             isWall = true;
                             break;
