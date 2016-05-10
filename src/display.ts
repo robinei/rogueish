@@ -103,32 +103,25 @@ export class Display {
                     }
                 }
                 ++dirtyCount;
+                
                 // now we draw the background using 'source-over' (the fastest mode)
                 // for cells which aren't black (because that is the default background color),
                 // and which have white (or invisible) foreground characters.
                 // non-white (and visible) characters need background drawn last, using 'destination-over', so skip them for now.
                 if (bg[i] === black || fg[i] !== white && char[i] !== 0 && char[i] !== 32) {
                     context.clearRect(x * CHAR_DIM, y * CHAR_DIM, CHAR_DIM, CHAR_DIM);
-                    continue;
+                } else {
+                    if (currFillColor !== bg[i]) {
+                        context.fillStyle = toStringColor(bg[i]);
+                        currFillColor = bg[i];
+                    }
+                    context.fillRect(x * CHAR_DIM, y * CHAR_DIM, CHAR_DIM, CHAR_DIM);
                 }
-                if (currFillColor !== bg[i]) {
-                    context.fillStyle = toStringColor(bg[i]);
-                    currFillColor = bg[i];
-                }
-                context.fillRect(x * CHAR_DIM, y * CHAR_DIM, CHAR_DIM, CHAR_DIM);
-            }
-        }
-        
-        // draw the foreground characters (using a white font)
-        for (let y = 0; y < h; ++y) {
-            for (let x = 0; x < w; ++x) {
-                const i = y * w + x;
-                if (!allDirty && !dirty[i]) {
-                    continue;
-                }
+                
                 if (char[i] === 0 || char[i] === 32) {
                     continue;
                 }
+                // draw the foreground characters (using a white font)
                 const sx = (char[i] % 16) * CHAR_DIM;
                 const sy = Math.floor(char[i] / 16) * CHAR_DIM;
                 context.drawImage(font, sx, sy, CHAR_DIM, CHAR_DIM, x * CHAR_DIM, y * CHAR_DIM, CHAR_DIM, CHAR_DIM);
