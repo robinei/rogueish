@@ -69,6 +69,7 @@ export const toStringColor = (color: Color): string => {
     return 'rgba(' + r + ',' + g + ',' + b + ',' + (a/127).toFixed(3) + ')';
 }
 
+
 export const scaleColor = (color: Color, factor: number) => {
     const r = Math.floor((color >>> 23) * factor) & 255;
     const g = Math.floor(((color >>> 15) & 255) * factor) & 255;
@@ -77,6 +78,25 @@ export const scaleColor = (color: Color, factor: number) => {
     return (r << 23) | (g << 15) | (b << 7) | a;
 }
 
+
+export const blendColors = (c0: Color, c1: Color, t: number) => {
+    var c0r = (c0 >>> 23) / 255;
+    var c0g = ((c0 >>> 15) & 255) / 255;
+    var c0b = ((c0 >>> 7) & 255) / 255;
+    var c0a = (c0 & 127) / 127;
+    
+    var c1r = (c1 >>> 23) / 255;
+    var c1g = ((c1 >>> 15) & 255) / 255;
+    var c1b = ((c1 >>> 7) & 255) / 255;
+    var c1a = (c1 & 127) / 127;
+    
+    var r = Math.floor((t * c1r + (1 - t) * c0r) * 255) & 255;
+    var g = Math.floor((t * c1g + (1 - t) * c0g) * 255) & 255;
+    var b = Math.floor((t * c1b + (1 - t) * c0b) * 255) & 255;
+    var a = Math.floor((t * c1a + (1 - t) * c0a) * 127) & 127;
+    
+    return (r << 23) | (g << 15) | (b << 7) | a;
+}
 
 
 

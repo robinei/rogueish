@@ -1,7 +1,8 @@
 import { Map, CellFlag } from './map';
 import { Display, CHAR_DIM } from './display';
 import { Vec2 } from './math';
-import { Color, colors, scaleColor } from './color';
+import { Color, colors, scaleColor, blendColors } from './color';
+import { fieldOfView } from './fov';
 
 export class MapDrawer {
     map: Map;
@@ -68,6 +69,41 @@ export class MapDrawer {
                 fg[i] = fgcolor;
                 bg[i] = bgcolor;
             }
+        }
+        
+        if (!this.cursorPos) {
+            return;
+        }
+        
+        const visited = {};
+        fieldOfView(this.cursorPos.x, this.cursorPos.y, 13, (x, y) => {
+            if (!this.map.isWalkable(x, y)) {
+                return;
+            }
+            const key = x + '_' + y;
+            if ((visited as any)[key]) {
+                return;
+            }
+            (visited as any)[key] = true;
+            const dx = x - this.cursorPos.x;
+            const dy = y - this.cursorPos.y;
+            const d = Math.min(10, Math.sqrt(dx * dx + dy * dy));
+            const t = 1 - (d / 10);
+            const outX = x - this.corner.x;
+            const outY = y - this.corner.y;
+            if (outX >= 0 && outY >= 0 && outX < w && outY < h) {
+                const i = outY * w + outX;
+                fg[i] = blendColors(fg[i], colors.red, t);
+                bg[i] = blendColors(bg[i], colors.red, t);
+            }
+        }, (x, y) => !this.map.isWalkable(x, y));
+        
+        const cursorX = this.cursorPos.x - this.corner.x;
+        const cursorY = this.cursorPos.y - this.corner.y;
+        if (cursorX >= 0 && cursorY >= 0 && cursorX < w && cursorY < h) {
+            const i = cursorY * w + cursorX;
+            char[i] = '@'.charCodeAt(0);
+            fg[i] = colors.white;
         }
     };
 }
