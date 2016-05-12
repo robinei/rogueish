@@ -37,6 +37,25 @@ export const parseColor = (str: string): Color => {
         }
         throw new Error('expected 6 digit hex value: ' + str);
     }
+    if (str.indexOf('rgba(') == 0) {
+        str = str.substring(5);
+        str = str.substring(0, str.length - 1);
+        const parts = str.split(',');
+        const r = parseInt(parts[0]);
+        const g = parseInt(parts[1]);
+        const b = parseInt(parts[2]);
+        const a = Math.floor(parseFloat(parts[3]) * 255);
+        return makeColor(r, g, b, a);
+    }
+    if (str.indexOf('rgb(') == 0) {
+        str = str.substring(4);
+        str = str.substring(0, str.length - 1);
+        const parts = str.split(',');
+        const r = parseInt(parts[0]);
+        const g = parseInt(parts[1]);
+        const b = parseInt(parts[2]);
+        return makeColor(r, g, b);
+    }
     const color = (colors as any)[str];
     if (color !== undefined) {
         return color;
