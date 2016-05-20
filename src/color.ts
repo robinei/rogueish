@@ -1,17 +1,5 @@
 
-
-
-export interface Color extends Number {
-    Color: any; // arbitrary member to simulate nominal type
-}
-
-
-export const makeColor = (r: number, g: number, b: number, a: number = 255): Color => {
-    return (((r << 24) >>> 0) | ((g << 16) | (b << 8) | a)) >>> 0 as any;
-};
-
-
-export const colors = {
+const colors = {
     clear:      makeColor(0x00, 0x00, 0x00, 0x00),
     white:      makeColor(0xff, 0xff, 0xff),
     silver:     makeColor(0xc0, 0xc0, 0xc0),
@@ -32,7 +20,28 @@ export const colors = {
 };
 
 
-export const parseColor = (str: string): Color => {
+export {
+    colors,
+    Color,
+    makeColor,
+    parseColor,
+    toStringColor,
+    scaleColor,
+    blendColors,
+}
+
+
+interface Color extends Number {
+    Color: any; // arbitrary member to simulate nominal type
+}
+
+
+function makeColor(r: number, g: number, b: number, a: number = 255): Color {
+    return (((r << 24) >>> 0) | ((g << 16) | (b << 8) | a)) >>> 0 as any;
+}
+
+
+function parseColor(str: string): Color {
     if (str.charAt(0) == '#') {
         if (str.length === 7) {
             return (((parseInt(str.substr(1), 16) << 8) >>> 0) | 255) >>> 0 as any;
@@ -63,11 +72,10 @@ export const parseColor = (str: string): Color => {
         return color;
     }
     throw new Error('unknown color: ' + str);
-};
+}
 
 
-export const toStringColor = (color: Color): string => {
-    
+function toStringColor(color: Color): string {
     const a = <any>color & 255;
     if (a == 255) {
         const str = (<any>color >>> 8).toString(16);
@@ -90,7 +98,7 @@ export const toStringColor = (color: Color): string => {
 }
 
 
-export const scaleColor = (color: Color, factor: number) => {
+function scaleColor(color: Color, factor: number): Color {
     const r = Math.floor((<any>color >>> 24) * factor) & 255;
     const g = Math.floor(((<any>color >>> 16) & 255) * factor) & 255;
     const b = Math.floor(((<any>color >>> 8) & 255) * factor) & 255;
@@ -98,7 +106,7 @@ export const scaleColor = (color: Color, factor: number) => {
 }
 
 
-export const blendColors = (c0: Color, c1: Color, t: number) => {
+function blendColors(c0: Color, c1: Color, t: number): Color {
     var c0r = (<any>c0 >>> 24) / 255;
     var c0g = ((<any>c0 >>> 16) & 255) / 255;
     var c0b = ((<any>c0 >>> 8) & 255) / 255;
@@ -116,9 +124,3 @@ export const blendColors = (c0: Color, c1: Color, t: number) => {
     
     return makeColor(r, g, b, a);
 }
-
-
-
-
-
-
