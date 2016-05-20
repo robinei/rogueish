@@ -84,7 +84,7 @@ export class Display {
         this.onDraw();
         
         let dirtyCount = 0;
-        let currFillColor = -1;
+        let currFillColor: Color = undefined;
         
         context.globalCompositeOperation = 'source-over';
         

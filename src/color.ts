@@ -1,11 +1,13 @@
 
 
 
-export type Color = number;
+export interface Color extends Number {
+    Color: any; // arbitrary member to simulate nominal type
+}
 
 
 export const makeColor = (r: number, g: number, b: number, a: number = 255): Color => {
-    return (((r << 24) >>> 0) | ((g << 16) | (b << 8) | a)) >>> 0;
+    return (((r << 24) >>> 0) | ((g << 16) | (b << 8) | a)) >>> 0 as any;
 };
 
 
@@ -33,7 +35,7 @@ export const colors = {
 export const parseColor = (str: string): Color => {
     if (str.charAt(0) == '#') {
         if (str.length === 7) {
-            return (((parseInt(str.substr(1), 16) << 8) >>> 0) | 255) >>> 0;
+            return (((parseInt(str.substr(1), 16) << 8) >>> 0) | 255) >>> 0 as any;
         }
         throw new Error('expected 6 digit hex value: ' + str);
     }
@@ -65,9 +67,10 @@ export const parseColor = (str: string): Color => {
 
 
 export const toStringColor = (color: Color): string => {
-    const a = color & 255;
+    
+    const a = <any>color & 255;
     if (a == 255) {
-        const str = (color >>> 8).toString(16);
+        const str = (<any>color >>> 8).toString(16);
         switch (str.length) {
         case 6: return '#' + str;
         case 5: return '#0' + str;
@@ -79,32 +82,32 @@ export const toStringColor = (color: Color): string => {
         }
         throw new Error('this should not happen');
     }
-    const r = color >>> 24;
-    const g = (color >>> 16) & 255;
-    const b = (color >>> 8) & 255;
+    const r = <any>color >>> 24;
+    const g = (<any>color >>> 16) & 255;
+    const b = (<any>color >>> 8) & 255;
     const aFixed = (a/255).toFixed(3);
     return `rgba(${r},${g},${b},${aFixed})`;
 }
 
 
 export const scaleColor = (color: Color, factor: number) => {
-    const r = Math.floor((color >>> 24) * factor) & 255;
-    const g = Math.floor(((color >>> 16) & 255) * factor) & 255;
-    const b = Math.floor(((color >>> 8) & 255) * factor) & 255;
-    return makeColor(r, g, b, color & 255);
+    const r = Math.floor((<any>color >>> 24) * factor) & 255;
+    const g = Math.floor(((<any>color >>> 16) & 255) * factor) & 255;
+    const b = Math.floor(((<any>color >>> 8) & 255) * factor) & 255;
+    return makeColor(r, g, b, <any>color & 255);
 }
 
 
 export const blendColors = (c0: Color, c1: Color, t: number) => {
-    var c0r = (c0 >>> 24) / 255;
-    var c0g = ((c0 >>> 16) & 255) / 255;
-    var c0b = ((c0 >>> 8) & 255) / 255;
-    var c0a = (c0 & 255) / 255;
+    var c0r = (<any>c0 >>> 24) / 255;
+    var c0g = ((<any>c0 >>> 16) & 255) / 255;
+    var c0b = ((<any>c0 >>> 8) & 255) / 255;
+    var c0a = (<any>c0 & 255) / 255;
     
-    var c1r = (c1 >>> 24) / 255;
-    var c1g = ((c1 >>> 16) & 255) / 255;
-    var c1b = ((c1 >>> 8) & 255) / 255;
-    var c1a = (c1 & 255) / 255;
+    var c1r = (<any>c1 >>> 24) / 255;
+    var c1g = ((<any>c1 >>> 16) & 255) / 255;
+    var c1b = ((<any>c1 >>> 8) & 255) / 255;
+    var c1a = (<any>c1 & 255) / 255;
     
     var r = Math.floor((t * c1r + (1 - t) * c0r) * 255);
     var g = Math.floor((t * c1g + (1 - t) * c0g) * 255);
