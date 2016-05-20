@@ -191,9 +191,8 @@ class Light {
 
     shade(arci: number, pt: Pt): boolean {
         const arc = this.arcs[arci];
-        const splice = this.arcs.splice;
         // Shade the arc with this point, replace it with new arcs (or none).
-        splice.apply(this.arcs, [arci as any, 1 as any].concat(arc.shade(pt)));
+        this.arcs.splice(arci, 1, ...arc.shade(pt));
         return this.arcs.length > 0;
     }
 }
