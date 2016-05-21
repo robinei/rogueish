@@ -181,7 +181,7 @@ function calcPath(
         }
     }
 
-    return null;
+    return undefined;
 }
 
 

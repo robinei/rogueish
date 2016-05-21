@@ -1,11 +1,122 @@
-import { Map, CellFlag } from './map';
-import { MapDrawer } from './mapdrawer';
-import { CHAR_DIM, Display, makeDisplay } from './display';
+import { CellFlag, Map, makeMap } from './map';
+import { makeMapDrawer } from './mapdrawer';
+import { CHAR_DIM, makeDisplay } from './display';
 import { fieldOfView } from './fov';
-import { toStringColor, makeColor } from './color';
+import { toStringColor, makeColor, parseColor } from './color';
+import { Vec2 } from './math';
 
 
-const map = new Map(80, 50);
+interface PrefabCellSpec {
+    char: string;
+    wantEntrance: boolean;
+}
+
+interface PrefabConf {
+    isEntrance(char: string): boolean;
+    applyCell(map: Map, x: number, y: number, spec: PrefabCellSpec): void;
+}
+
+interface Prefab {
+    conf: PrefabConf;
+    rows: string[];
+    width: number;
+    height: number;
+    entrances: Vec2[];
+}
+
+function makePrefab(conf: PrefabConf, rows: string[]): Prefab {
+    rows = Object.freeze(rows);
+    
+    const entrances: Vec2[] = [];
+    
+    const height = rows.length;
+    if (height === 0) {
+        throw new Error('expected 1 or more rows');
+    }
+    
+    const width = rows[0].length;
+    if (width === 0) {
+        throw new Error('expected 1 or more characters in row');
+    }
+    
+    // find the entrances
+    for (let y = 0; y < height; ++y) {
+        if (rows[y].length != width) {
+            throw new Error('expected all rows to be of length: ' + width);
+        }
+        for (let x = 0; x < width; ++x) {
+            if (conf.isEntrance(rows[y][x])) {
+                entrances.push(new Vec2(x, y));
+            }
+        }
+    }
+    
+    return {
+        conf,
+        rows,
+        width,
+        height,
+        entrances
+    };
+}
+
+
+
+
+const prefabConf: PrefabConf = {
+    isEntrance: char => char == 'e',
+    applyCell: (map, x, y, spec) => {
+        switch (spec.char) {
+        case '.':
+            map.setFlags(x, y, CellFlag.Walkable);
+            break;
+        case 'e':
+            if (spec.wantEntrance) {
+                map.setFlags(x, y, CellFlag.Walkable);
+            } else {
+                map.setFlags(x, y, 0);
+            }
+            break;
+        case '#':
+            map.setFlags(x, y, 0);
+            break;
+        }
+    },
+};
+
+const prefab0 = makePrefab(prefabConf, [
+    "  ###e###  ",
+    " ##.....## ",
+    "##.......##",
+    "#.........#",
+    "#....#....#",
+    "e...###...e",
+    "#....#....#",
+    "#.........#",
+    "##.......##",
+    " ##.....## ",
+    "  ###e###  "
+]);
+
+
+
+function applyPrefab(prefab: Prefab, map: Map, ox: number, oy: number) {
+    const spec: PrefabCellSpec = {
+        wantEntrance: false,
+        char: ''
+    };
+    for (let y = 0; y < prefab.height; ++y) {
+        for (let x = 0; x < prefab.width; ++x) {
+            spec.char = prefab.rows[y][x];
+            prefab.conf.applyCell(map, ox + x, oy + y, spec);
+        }
+    }
+}
+
+
+
+const map = makeMap(200, 200);
+applyPrefab(prefab0, map, 1, 1);
 map.forNeighbours(20, 20, 10, (x, y) => {
     map.setFlag(x, y, CellFlag.Walkable);
     return true;
@@ -14,12 +125,13 @@ map.forNeighbours(40, 20, 10, (x, y) => {
     map.setFlag(x, y, CellFlag.Walkable);
     return true;
 });
-map.recalcWalls();
+map.clearFlag(30, 19, CellFlag.Walkable);
+map.clearFlag(30, 20, CellFlag.Walkable);
 
 
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
 const display = makeDisplay(canvas, runApp, onDraw);
-const mapDrawer = new MapDrawer(map, display);
+const mapDrawer = makeMapDrawer(map, display);
 
 
 function onDraw() {
