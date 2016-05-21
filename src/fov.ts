@@ -2,8 +2,13 @@
 // http://www.roguebasin.com/index.php?title=Permissive_Field_of_View
 
 
+export {
+    fieldOfView
+}
+
+
 /** Compute the field of view from (ox, oy) out to radius r. */
-export function fieldOfView(
+function fieldOfView(
     ox: number,
     oy: number,
     r: number,
@@ -14,26 +19,27 @@ export function fieldOfView(
     visit(ox, oy); // origin always visited.
 
     function quadrant(dx: number, dy: number): void {
-        const light = new Light(r);
+        const light = makeLight(r);
         for (let dr = 1; dr <= r; ++dr) {
             for (let i = 0; i <= dr; ++i) {
                 // Check for light hitting this cell.
-                const cell = new Pt(dr - i, i);
-                const arci = light.hits(cell);
+                const cellX = dr - i;
+                const cellY = i;
+                const arci = light.hits(cellX, cellY);
                 if (arci < 0) {
                     continue; // unlit
                 }
 
                 // Show the lit cell, check if blocking.
-                const ax = ox + cell.x * dx;
-                const ay = oy + cell.y * dy;
+                const ax = ox + cellX * dx;
+                const ay = oy + cellY * dy;
                 visit(ax, ay);
                 if (!blocked(ax, ay)) {
                     continue; // unblocked
                 }
 
                 // Blocking cells cast shadows.
-                if (!light.shade(arci, cell)) {
+                if (!light.shade(arci, cellX, cellY)) {
                     return; // no more light
                 }
             }
@@ -47,152 +53,173 @@ export function fieldOfView(
 }
 
 
-/** Helper methods for points. */
-class Pt {
-    x: number;
-    y: number;
-    constructor(x: number, y: number) {
-        this.x = x;
-        this.y = y;
-    }
-    toString(): string { return '(' + this.x + ',' + this.y + ')'; }
-    copy(): Pt { return new Pt(this.x, this.y); }
+
+interface Ln {
+    copy(): Ln;
+    cw(x: number, y: number): boolean;
+    ccw(x: number, y: number): boolean;
+    setP(x: number, y: number): void;
+    setQ(x: number, y: number): void;
 }
 
-
 /** Helper methods for lines. */
-class Ln {
-    p: Pt;
-    q: Pt;
-    constructor(p: Pt, q: Pt) {
-        this.p = p;
-        this.q = q;
-    }
-    toString(): string { return this.p + '-' + this.q; }
-    copy(): Ln { return new Ln(this.p.copy(), this.q.copy()); }
-    cw(pt: Pt): boolean { return this.dtheta(pt) > 0; }
-    ccw(pt: Pt): boolean { return this.dtheta(pt) < 0; }
-    dtheta(pt: Pt): number {
-        const theta = Math.atan2(this.q.y - this.p.y, this.q.x - this.p.x);
-        const other = Math.atan2(pt.y - this.p.y, pt.x - this.p.x);
+function makeLn(px: number, py: number, qx: number, qy: number): Ln {
+    function dtheta(x: number, y: number): number {
+        const theta = Math.atan2(qy - py, qx - px);
+        const other = Math.atan2(y - py, x - px);
         const dt = other - theta;
         return (dt > -Math.PI) ? dt : (dt + 2 * Math.PI);
     }
+    return {
+        copy: () => makeLn(px, py, qx, qy),
+        cw: (x, y) => dtheta(x, y) > 0,
+        ccw: (x, y) => dtheta(x, y) < 0,
+        setP: (x, y) => {
+            px = x;
+            py = y;
+        },
+        setQ: (x, y) => {
+            qx = x;
+            qy = y;
+        },
+    };
+}
+
+
+
+interface Arc {
+    pushSteepBump(x: number, y: number): void;
+    pushShallowBump(x: number, y: number): void;
+    copy(): Arc;
+    hits(x: number, y: number): boolean;
+    bumpCW(x: number, y: number): void;
+    bumpCCW(x: number, y: number): void;
+    shade(x: number, y: number): Arc[];
 }
 
 
 /** Helper methods for arcs. */
-class Arc {
-    steep: Ln;
-    shallow: Ln;
-    steepbumps: Pt[];
-    shallowbumps: Pt[];
+function makeArc(steep: Ln, shallow: Ln): Arc {
+    const steepBumpsX: number[] = [];
+    const steepBumpsY: number[] = [];
+    const shallowBumpsX: number[] = [];
+    const shallowBumpsY: number[] = [];
+
+    const arc: Arc = {
+        pushSteepBump,
+        pushShallowBump,
+        copy,
+        hits,
+        bumpCW,
+        bumpCCW,
+        shade,
+    };
     
-    constructor(steep: Ln, shallow: Ln) {
-        this.steep = steep;
-        this.shallow = shallow;
-        this.steepbumps = [];
-        this.shallowbumps = [];
+    function pushSteepBump(x: number, y: number): void {
+        steepBumpsX.push(x);
+        steepBumpsY.push(y);
+    }
+    
+    function pushShallowBump(x: number, y: number): void {
+        shallowBumpsX.push(x);
+        shallowBumpsY.push(y);
     }
 
-    toString(): string {
-        return '[' + this.steep + ' : ' + this.shallow + ']';
-    }
-
-    copy(): Arc {
-        const c = new Arc(this.steep.copy(), this.shallow.copy());
-        for (let i = 0; i < this.steepbumps.length; ++i) {
-            c.steepbumps.push(this.steepbumps[i].copy());
+    function copy(): Arc {
+        const c = makeArc(steep.copy(), shallow.copy());
+        for (let i = 0; i < steepBumpsX.length; ++i) {
+            c.pushSteepBump(steepBumpsX[i], steepBumpsY[i]);
         }
-        for (let i = 0; i < this.shallowbumps.length; ++i) {
-            c.shallowbumps.push(this.shallowbumps[i].copy());
+        for (let i = 0; i < shallowBumpsX.length; ++i) {
+            c.pushShallowBump(shallowBumpsX[i], shallowBumpsY[i]);
         }
         return c;
     }
 
-    hits(pt: Pt): boolean {
-        return this.steep.ccw(new Pt(pt.x + 1, pt.y)) && this.shallow.cw(new Pt(pt.x, pt.y + 1));
+    function hits(x: number, y: number): boolean {
+        return steep.ccw(x + 1, y) && shallow.cw(x, y + 1);
     }
 
     /** Bump this arc clockwise (a steep bump). */
-    bumpCW(pt: Pt): void {
+    function bumpCW(x: number, y: number): void {
         // Steep bump.
-        const sb = new Pt(pt.x + 1, pt.y);
-        this.steepbumps.push(sb);
-        this.steep.q = sb;
-        for (let i = 0; i < this.shallowbumps.length; ++i) {
-            const b = this.shallowbumps[i];
-            if (this.steep.cw(b)) {
-                this.steep.p = b;
+        pushSteepBump(x + 1, y);
+        steep.setQ(x + 1, y);
+        for (let i = 0; i < shallowBumpsX.length; ++i) {
+            if (steep.cw(shallowBumpsX[i], shallowBumpsY[i])) {
+                steep.setP(shallowBumpsX[i], shallowBumpsY[i]);
             }
         }
     }
 
     /** Bump this arc counterclockwise (a shallow bump). */
-    bumpCCW(pt: Pt): void {
-        const sb = new Pt(pt.x, pt.y + 1);
-        this.shallowbumps.push(sb);
-        this.shallow.q = sb;
-        for (let i = 0; i < this.steepbumps.length; ++i) {
-            const b = this.steepbumps[i];
-            if (this.shallow.ccw(b)) {
-                this.shallow.p = b;
+    function bumpCCW(x: number, y: number): void {
+        pushShallowBump(x, y + 1);
+        shallow.setQ(x, y + 1);
+        for (let i = 0; i < steepBumpsX.length; ++i) {
+            if (shallow.ccw(steepBumpsX[i], steepBumpsY[i])) {
+                shallow.setP(steepBumpsX[i], steepBumpsY[i]);
             }
         }
     }
 
-    shade(pt: Pt): Arc[] {
-        const steepBlock = this.steep.cw(new Pt(pt.x, pt.y + 1));
-        const shallowBlock = this.shallow.ccw(new Pt(pt.x + 1, pt.y));
+    function shade(x: number, y: number): Arc[] {
+        const steepBlock = steep.cw(x, y + 1);
+        const shallowBlock = shallow.ccw(x + 1, y);
         if (steepBlock && shallowBlock) {
             // Completely blocks this arc.
             return [];
         } else if (steepBlock) {
             // Steep bump.
-            this.bumpCW(pt);
-            return [this];
+            bumpCW(x, y);
+            return [arc];
         } else if (shallowBlock) {
             // Shallow bump.
-            this.bumpCCW(pt);
-            return [this];
+            bumpCCW(x, y);
+            return [arc];
         } else {
             // Splits this arc in twain.
-            const a = this.copy();
-            const b = this.copy();
-            a.bumpCW(pt);
-            b.bumpCCW(pt);
+            const a = copy();
+            const b = copy();
+            a.bumpCW(x, y);
+            b.bumpCCW(x, y);
             return [a, b];
         }
     }
+    
+    return arc;
 }
 
 
+interface Light {
+    hits(x: number, y: number): number;
+    shade(arci: number, x: number, y: number): boolean;
+}
+
 /** Helper methods for a collection of arcs covering a quadrant. */
-class Light {
-    arcs: Arc[];
-    
-    constructor(radius: number) {
-        const wide = new Arc(
-            new Ln(new Pt(1, 0), new Pt(0, radius)),
-            new Ln(new Pt(0, 1), new Pt(radius, 0))
-        );
-        this.arcs = [wide];
-    }
+function makeLight(radius: number): Light {
+    const wide = makeArc(makeLn(1, 0, 0, radius), makeLn(0, 1, radius, 0));
+    const arcs = [wide];
     
     /** Return index of Arc that hits the point, or -1 if none do. */
-    hits(pt: Pt): number {
-        for (let i = 0; i < this.arcs.length; ++i) {
-            if (this.arcs[i].hits(pt)) {
+    function hits(x: number, y: number): number {
+        for (let i = 0; i < arcs.length; ++i) {
+            if (arcs[i].hits(x, y)) {
                 return i;
             }
         }
         return -1;
     }
 
-    shade(arci: number, pt: Pt): boolean {
-        const arc = this.arcs[arci];
+    function shade(arci: number, x: number, y: number): boolean {
+        const arc = arcs[arci];
         // Shade the arc with this point, replace it with new arcs (or none).
-        this.arcs.splice(arci, 1, ...arc.shade(pt));
-        return this.arcs.length > 0;
+        arcs.splice(arci, 1, ...arc.shade(x, y));
+        return arcs.length > 0;
     }
+    
+    return {
+        hits,
+        shade,
+    };
 }
