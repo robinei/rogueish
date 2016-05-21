@@ -1,6 +1,6 @@
 import { Map, CellFlag } from './map';
 import { MapDrawer } from './mapdrawer';
-import { Display, CHAR_DIM } from './display';
+import { CHAR_DIM, Display, makeDisplay } from './display';
 import { fieldOfView } from './fov';
 import { toStringColor, makeColor } from './color';
 
@@ -18,7 +18,7 @@ map.recalcWalls();
 
 
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
-const display = new Display(canvas, runApp, onDraw);
+const display = makeDisplay(canvas, runApp, onDraw);
 const mapDrawer = new MapDrawer(map, display);
 
 

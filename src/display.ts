@@ -1,96 +1,97 @@
 import { Color, colors, toStringColor } from './color';
 
-export const CHAR_DIM = 12;
+const CHAR_DIM = 12;
 
-export class Display {
-    private canvas: HTMLCanvasElement;
-    private context: CanvasRenderingContext2D;
-    private font: HTMLImageElement;
+
+export {
+    CHAR_DIM,
+    Display,
+    DisplayProps,
+    makeDisplay,
+}
+
+
+
+interface Display {
+    getProps(): DisplayProps;
+    reshape(): void;
+    redraw(): void;
+}
+
+interface DisplayProps {
+    width: number;
+    height: number;
+    char: number[];
+    fg: Color[];
+    bg: Color[];
+}
+
+
+function makeDisplay(canvas: HTMLCanvasElement, onInited: () => void, onDraw: () => void): Display {
+    const context = canvas.getContext('2d');
+    const font = new Image();
+    font.onload = onInited;
+    font.src = 'font.png';
     
-    width: number = 0;
-    height: number = 0;
-    char: number[] = [];
-    fg: Color[] = [];
-    bg: Color[] = [];
+    const black = colors.black;
+    const white = colors.white;
     
-    private prevWidth: number = 0;
-    private prevHeight: number = 0;
-    private prevChar: number[] = [];
-    private prevFg: Color[] = [];
-    private prevBg: Color[] = [];
+    let width = 0;
+    let height = 0;
+    let char = [0];
+    let fg = [white];
+    let bg = [black];
     
-    private allDirty: boolean = true;
-    private dirty: boolean[] = [];
+    let prevWidth = 0;
+    let prevHeight = 0;
+    let prevChar = [0];
+    let prevFg = [white];
+    let prevBg = [black];
     
-    private onDraw: () => void;
+    const dirty = [false];
+    let allDirty = true;
     
-    constructor(canvas: HTMLCanvasElement, onInited: () => void, onDraw: () => void) {
-        this.onDraw = onDraw;
-        this.canvas = canvas;
-        this.context = canvas.getContext('2d');
-        this.font = new Image();
-        this.font.onload = onInited;
-        this.font.src = 'font.png';
+    
+    function reshape() {
+        width = Math.ceil(canvas.width / CHAR_DIM);
+        height = Math.ceil(canvas.height / CHAR_DIM);
+        
+        char.length = width * height;
+        fg.length = width * height;
+        bg.length = width * height;
+        dirty.length = width * height;
+        allDirty = true;
+        
+        redraw();
     }
     
-    reshape = () => {
-        const w = Math.ceil(this.canvas.width / CHAR_DIM);
-        const h = Math.ceil(this.canvas.height / CHAR_DIM);
-        
-        this.width = w;
-        this.height = h;
-        this.char.length = w * h;
-        this.fg.length = w * h;
-        this.bg.length = w * h;
-        this.allDirty = true;
-        
-        this.redraw();
-    };
+    function redraw() {
+        window.requestAnimationFrame(draw);
+    }
     
-    redraw = () => {
-        window.requestAnimationFrame(this.draw);
-    };
-    
-    private draw = () => {
-        const context = this.context;
-        const font = this.font;
-        const w = this.width;
-        const h = this.height;
-        const char = this.char;
-        const fg = this.fg;
-        const bg = this.bg;
-        const prevWidth = this.prevWidth;
-        const prevHeight = this.prevHeight;
-        const prevChar = this.prevChar;
-        const prevFg = this.prevFg;
-        const prevBg = this.prevBg;
-        const allDirty = this.allDirty;
-        const dirty = this.dirty;
-        const black = colors.black;
-        const white = colors.white;
-        
-        char.length = w * h;
-        fg.length = w * h;
-        bg.length = w * h;
-        for (let y = 0; y < h; ++y) {
-            for (let x = 0; x < w; ++x) {
-                const i = y * w + x;
+    function draw() {
+        char.length = width * height;
+        fg.length = width * height;
+        bg.length = width * height;
+        for (let y = 0; y < height; ++y) {
+            for (let x = 0; x < width; ++x) {
+                const i = y * width + x;
                 char[i] = 0;
                 fg[i] = colors.white;
                 bg[i] = colors.black;
             }
         }
         
-        this.onDraw();
+        onDraw();
         
         let dirtyCount = 0;
         let currFillColor: Color = undefined;
         
         context.globalCompositeOperation = 'source-over';
         
-        for (let y = 0; y < h; ++y) {
-            for (let x = 0; x < w; ++x) {
-                const i = y * w + x;
+        for (let y = 0; y < height; ++y) {
+            for (let x = 0; x < width; ++x) {
+                const i = y * width + x;
                 if (!allDirty) {
                     if (x < prevWidth && y < prevHeight) {
                         const j = y * prevWidth + x;
@@ -130,9 +131,9 @@ export class Display {
         
         // apply color onto non-white characters (this is why background must come last for these cells)
         context.globalCompositeOperation = 'source-atop';
-        for (let y = 0; y < h; ++y) {
-            for (let x = 0; x < w; ++x) {
-                const i = y * w + x;
+        for (let y = 0; y < height; ++y) {
+            for (let x = 0; x < width; ++x) {
+                const i = y * width + x;
                 if (!allDirty && !dirty[i]) {
                     continue;
                 }
@@ -149,9 +150,9 @@ export class Display {
         
         // draw background underneath visible non-white characters
         context.globalCompositeOperation = 'destination-over';
-        for (let y = 0; y < h; ++y) {
-            for (let x = 0; x < w; ++x) {
-                const i = y * w + x;
+        for (let y = 0; y < height; ++y) {
+            for (let x = 0; x < width; ++x) {
+                const i = y * width + x;
                 if (!allDirty && !dirty[i]) {
                     continue;
                 }
@@ -168,16 +169,34 @@ export class Display {
         
         context.globalCompositeOperation = 'source-over';
         
-        this.prevWidth = w;
-        this.prevHeight = h;
-        this.prevChar = char;
-        this.prevFg = fg;
-        this.prevBg = bg;
-        this.char = prevChar;
-        this.fg = prevFg;
-        this.bg = prevBg;
-        this.allDirty = false;
+        const tempChar = char;
+        const tempFg = fg;
+        const tempBg = bg;
         
-        //console.log('redraw ' + dirtyCount + '/' + (w * h));
+        char = prevChar;
+        fg = prevFg;
+        bg = prevBg;
+        
+        prevChar = tempChar;
+        prevFg = tempFg;
+        prevBg = tempBg;
+        
+        prevWidth = width;
+        prevHeight = height;
+        allDirty = false;
+        
+        //console.log('redraw ' + dirtyCount + '/' + (width * height));
+    }
+    
+    return {
+        getProps: () => ({
+            width,
+            height,
+            char,
+            fg,
+            bg
+        }),
+        reshape,
+        redraw
     };
 }

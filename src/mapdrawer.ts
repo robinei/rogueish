@@ -30,14 +30,10 @@ export class MapDrawer {
     };
     
     draw = () => {
-        const w = this.display.width;
-        const h = this.display.height;
-        const char = this.display.char;
-        const fg = this.display.fg;
-        const bg = this.display.bg;
+        const { width, height, char, fg, bg } = this.display.getProps();
         
-        for (let y = 0; y < h; ++y) {
-            for (let x = 0; x < w; ++x) {
+        for (let y = 0; y < height; ++y) {
+            for (let x = 0; x < width; ++x) {
                 const cellx = x + this.corner.x;
                 const celly = y + this.corner.y;
                 if (cellx < 0 || celly < 0 || cellx >= this.map.width || celly >= this.map.height) {
@@ -64,7 +60,7 @@ export class MapDrawer {
                     bgcolor = scaleColor(bgcolor, 0.5);
                 }
                 
-                const i = y * w + x;
+                const i = y * width + x;
                 char[i] = charcode;
                 fg[i] = fgcolor;
                 bg[i] = bgcolor;
@@ -91,8 +87,8 @@ export class MapDrawer {
             const t = 1 - (d / 10);
             const outX = x - this.corner.x;
             const outY = y - this.corner.y;
-            if (outX >= 0 && outY >= 0 && outX < w && outY < h) {
-                const i = outY * w + outX;
+            if (outX >= 0 && outY >= 0 && outX < width && outY < height) {
+                const i = outY * width + outX;
                 fg[i] = blendColors(fg[i], colors.red, t);
                 bg[i] = blendColors(bg[i], colors.red, t);
             }
@@ -100,8 +96,8 @@ export class MapDrawer {
         
         const cursorX = this.cursorPos.x - this.corner.x;
         const cursorY = this.cursorPos.y - this.corner.y;
-        if (cursorX >= 0 && cursorY >= 0 && cursorX < w && cursorY < h) {
-            const i = cursorY * w + cursorX;
+        if (cursorX >= 0 && cursorY >= 0 && cursorX < width && cursorY < height) {
+            const i = cursorY * width + cursorX;
             char[i] = '@'.charCodeAt(0);
             fg[i] = colors.white;
         }
