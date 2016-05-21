@@ -287,7 +287,7 @@ function makeUndoStack(map: Map): UndoStack {
     const stack: UndoContext[] = [];
     
     function pushContext(ox: number, oy: number, width: number, height: number) {
-        var context = makeUndoContext(map, ox, oy, width, height);
+        const context = makeUndoContext(map, ox, oy, width, height);
         stack.push(context);
         return context;
     }
@@ -339,12 +339,12 @@ const maxAreaRadius = 32;
     });
     
     let currDistance = -1;
-    let currBucket: AreaPos[] = null;
+    let currBucket: AreaPos[] = undefined;
     for (let i = 0; i < areaPositionsByDistance.length; ++i) {
         const pos = areaPositionsByDistance[i];
         const d = Math.floor(pos.distance);
         if (d != currDistance) {
-            if (currBucket !== null) {
+            if (currBucket !== undefined) {
                 areaPositionBuckets.push(currBucket);
             }
             currBucket = [];
@@ -352,7 +352,7 @@ const maxAreaRadius = 32;
         }
         currBucket.push(pos);
     }
-    if (currBucket !== null && currBucket.length > 0) {
+    if (currBucket !== undefined && currBucket.length > 0) {
         areaPositionBuckets.push(currBucket);
     }
 }

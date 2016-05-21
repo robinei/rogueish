@@ -107,20 +107,20 @@ function scaleColor(color: Color, factor: number): Color {
 
 
 function blendColors(c0: Color, c1: Color, t: number): Color {
-    var c0r = (<any>c0 >>> 24) / 255;
-    var c0g = ((<any>c0 >>> 16) & 255) / 255;
-    var c0b = ((<any>c0 >>> 8) & 255) / 255;
-    var c0a = (<any>c0 & 255) / 255;
+    const c0r = (<any>c0 >>> 24) / 255;
+    const c0g = ((<any>c0 >>> 16) & 255) / 255;
+    const c0b = ((<any>c0 >>> 8) & 255) / 255;
+    const c0a = (<any>c0 & 255) / 255;
     
-    var c1r = (<any>c1 >>> 24) / 255;
-    var c1g = ((<any>c1 >>> 16) & 255) / 255;
-    var c1b = ((<any>c1 >>> 8) & 255) / 255;
-    var c1a = (<any>c1 & 255) / 255;
+    const c1r = (<any>c1 >>> 24) / 255;
+    const c1g = ((<any>c1 >>> 16) & 255) / 255;
+    const c1b = ((<any>c1 >>> 8) & 255) / 255;
+    const c1a = (<any>c1 & 255) / 255;
     
-    var r = Math.floor((t * c1r + (1 - t) * c0r) * 255);
-    var g = Math.floor((t * c1g + (1 - t) * c0g) * 255);
-    var b = Math.floor((t * c1b + (1 - t) * c0b) * 255);
-    var a = Math.floor((t * c1a + (1 - t) * c0a) * 255);
+    const r = Math.floor((t * c1r + (1 - t) * c0r) * 255);
+    const g = Math.floor((t * c1g + (1 - t) * c0g) * 255);
+    const b = Math.floor((t * c1b + (1 - t) * c0b) * 255);
+    const a = Math.floor((t * c1a + (1 - t) * c0a) * 255);
     
     return makeColor(r, g, b, a);
 }

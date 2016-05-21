@@ -39,11 +39,11 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
         const x = Math.floor(canvasX / CHAR_DIM);
         const y = Math.floor(canvasY / CHAR_DIM);
         return new Vec2(x, y);
-    };
+    }
     
     function canvasCoordForWorldTileCoord(x: number, y: number): Vec2 {
         return new Vec2((x - mapDrawer.corner.x) * CHAR_DIM, (y - mapDrawer.corner.y) * CHAR_DIM);
-    };
+    }
     
     function draw(): void {
         const { width, height, char, fg, bg } = display.getProps();
@@ -111,7 +111,7 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
             char[i] = '@'.charCodeAt(0);
             fg[i] = colors.white;
         }
-    };
+    }
     
     return mapDrawer;
 }

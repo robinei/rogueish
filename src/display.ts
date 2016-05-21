@@ -28,11 +28,6 @@ interface DisplayProps {
 
 
 function makeDisplay(canvas: HTMLCanvasElement, onInited: () => void, onDraw: () => void): Display {
-    const context = canvas.getContext('2d');
-    const font = new Image();
-    font.onload = onInited;
-    font.src = 'font.png';
-    
     const black = colors.black;
     const white = colors.white;
     
@@ -50,6 +45,11 @@ function makeDisplay(canvas: HTMLCanvasElement, onInited: () => void, onDraw: ()
     
     const dirty = [false];
     let allDirty = true;
+    
+    const context = canvas.getContext('2d');
+    const font = new Image();
+    font.onload = onInited;
+    font.src = 'font.png';
     
     
     function reshape() {
