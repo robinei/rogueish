@@ -18,7 +18,7 @@ function fieldOfView(
 {
     visit(ox, oy); // origin always visited.
 
-    function quadrant(dx: number, dy: number): void {
+    function quadrant(dx: number, dy: number, skipX: number, skipY: number): void {
         const light = makeLight(r);
         for (let dr = 1; dr <= r; ++dr) {
             for (let i = 0; i <= dr; ++i) {
@@ -33,7 +33,9 @@ function fieldOfView(
                 // Show the lit cell, check if blocking.
                 const ax = ox + cellX * dx;
                 const ay = oy + cellY * dy;
-                visit(ax, ay);
+                if (ax != skipX && ay != skipY) {
+                    visit(ax, ay);
+                }
                 if (!blocked(ax, ay)) {
                     continue; // unblocked
                 }
@@ -46,10 +48,10 @@ function fieldOfView(
         }
     }
 
-    quadrant(-1, +1);
-    quadrant(+1, +1);
-    quadrant(-1, -1);
-    quadrant(+1, -1);
+    quadrant(-1, +1, -1, -1);
+    quadrant(+1, +1, ox, -1);
+    quadrant(-1, -1, -1, oy);
+    quadrant(+1, -1, ox, oy);
 }
 
 

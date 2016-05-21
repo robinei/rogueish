@@ -87,16 +87,10 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
             return;
         }
         
-        const visited = {};
         fieldOfView(mapDrawer.cursorPos.x, mapDrawer.cursorPos.y, 13, (x, y) => {
             if (!map.isWalkable(x, y)) {
                 return;
             }
-            const key = x + '_' + y;
-            if ((visited as any)[key]) {
-                return;
-            }
-            (visited as any)[key] = true;
             const dx = x - mapDrawer.cursorPos.x;
             const dy = y - mapDrawer.cursorPos.y;
             const d = Math.min(10, Math.sqrt(dx * dx + dy * dy));
