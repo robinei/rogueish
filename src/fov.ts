@@ -19,13 +19,14 @@ function fieldOfView(
     visit(ox, oy); // origin always visited.
 
     function quadrant(dx: number, dy: number, skipX: number, skipY: number): void {
-        const light = makeLight(r);
+        const arcs = [makeArc(makeLn(1, 0, 0, r), makeLn(0, 1, r, 0))];
+        
         for (let dr = 1; dr <= r; ++dr) {
             for (let i = 0; i <= dr; ++i) {
                 // Check for light hitting this cell.
                 const cellX = dr - i;
                 const cellY = i;
-                const arci = light.hits(cellX, cellY);
+                const arci = indexOfHittingArc(arcs, cellX, cellY);
                 if (arci < 0) {
                     continue; // unlit
                 }
@@ -41,7 +42,7 @@ function fieldOfView(
                 }
 
                 // Blocking cells cast shadows.
-                if (!light.shade(arci, cellX, cellY)) {
+                if (!shadeArcAtIndex(arcs, arci, cellX, cellY)) {
                     return; // no more light
                 }
             }
@@ -52,6 +53,24 @@ function fieldOfView(
     quadrant(+1, +1, ox, -1);
     quadrant(-1, -1, -1, oy);
     quadrant(+1, -1, ox, oy);
+}
+
+
+/** Return index of Arc that hits the point, or -1 if none do. */
+function indexOfHittingArc(arcs: Arc[], x: number, y: number): number {
+    for (let i = 0; i < arcs.length; ++i) {
+        if (arcs[i].hits(x, y)) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+
+/** Shade the arc with this point, replace it with new arcs (or none). */
+function shadeArcAtIndex(arcs: Arc[], arci: number, x: number, y: number): boolean {
+    arcs.splice(arci, 1, ...arcs[arci].shade(x, y));
+    return arcs.length > 0;
 }
 
 
@@ -190,38 +209,4 @@ function makeArc(steep: Ln, shallow: Ln): Arc {
     }
     
     return arc;
-}
-
-
-interface Light {
-    hits(x: number, y: number): number;
-    shade(arci: number, x: number, y: number): boolean;
-}
-
-/** Helper methods for a collection of arcs covering a quadrant. */
-function makeLight(radius: number): Light {
-    const wide = makeArc(makeLn(1, 0, 0, radius), makeLn(0, 1, radius, 0));
-    const arcs = [wide];
-    
-    /** Return index of Arc that hits the point, or -1 if none do. */
-    function hits(x: number, y: number): number {
-        for (let i = 0; i < arcs.length; ++i) {
-            if (arcs[i].hits(x, y)) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    function shade(arci: number, x: number, y: number): boolean {
-        const arc = arcs[arci];
-        // Shade the arc with this point, replace it with new arcs (or none).
-        arcs.splice(arci, 1, ...arc.shade(x, y));
-        return arcs.length > 0;
-    }
-    
-    return {
-        hits,
-        shade,
-    };
 }

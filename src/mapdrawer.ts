@@ -58,6 +58,8 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
                 
                 let flags = map.getFlags(cellX, cellY);
                 
+                //if ((flags & CellFlag.Discovered) === 0) { continue; }
+                
                 let charCode = '.'.charCodeAt(0);
                 let bgColor = colors.black;
                 let fgColor = colors.white;

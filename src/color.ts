@@ -37,6 +37,10 @@ interface Color extends Number {
 
 
 function makeColor(r: number, g: number, b: number, a: number = 255): Color {
+    if (r > 255) { r = 255; }
+    if (g > 255) { g = 255; }
+    if (b > 255) { b = 255; }
+    if (a > 255) { a = 255; }
     return (((r << 24) >>> 0) | ((g << 16) | (b << 8) | a)) >>> 0 as any;
 }
 
@@ -93,34 +97,34 @@ function toStringColor(color: Color): string {
     const r = <any>color >>> 24;
     const g = (<any>color >>> 16) & 255;
     const b = (<any>color >>> 8) & 255;
-    const aFixed = (a/255).toFixed(3);
+    const aFixed = (a / 255).toFixed(3);
     return `rgba(${r},${g},${b},${aFixed})`;
 }
 
 
 function scaleColor(color: Color, factor: number): Color {
-    const r = Math.floor((<any>color >>> 24) * factor) & 255;
-    const g = Math.floor(((<any>color >>> 16) & 255) * factor) & 255;
-    const b = Math.floor(((<any>color >>> 8) & 255) * factor) & 255;
+    const r = Math.floor((<any>color >>> 24) * factor);
+    const g = Math.floor(((<any>color >>> 16) & 255) * factor);
+    const b = Math.floor(((<any>color >>> 8) & 255) * factor);
     return makeColor(r, g, b, <any>color & 255);
 }
 
 
 function blendColors(c0: Color, c1: Color, t: number): Color {
-    const c0r = (<any>c0 >>> 24) / 255;
-    const c0g = ((<any>c0 >>> 16) & 255) / 255;
-    const c0b = ((<any>c0 >>> 8) & 255) / 255;
-    const c0a = (<any>c0 & 255) / 255;
+    const c0r = <any>c0 >>> 24;
+    const c0g = (<any>c0 >>> 16) & 255;
+    const c0b = (<any>c0 >>> 8) & 255;
+    const c0a = <any>c0 & 255;
     
-    const c1r = (<any>c1 >>> 24) / 255;
-    const c1g = ((<any>c1 >>> 16) & 255) / 255;
-    const c1b = ((<any>c1 >>> 8) & 255) / 255;
-    const c1a = (<any>c1 & 255) / 255;
+    const c1r = <any>c1 >>> 24;
+    const c1g = (<any>c1 >>> 16) & 255;
+    const c1b = (<any>c1 >>> 8) & 255;
+    const c1a = <any>c1 & 255;
     
-    const r = Math.floor((t * c1r + (1 - t) * c0r) * 255);
-    const g = Math.floor((t * c1g + (1 - t) * c0g) * 255);
-    const b = Math.floor((t * c1b + (1 - t) * c0b) * 255);
-    const a = Math.floor((t * c1a + (1 - t) * c0a) * 255);
+    const r = Math.floor(t * c1r + (1 - t) * c0r);
+    const g = Math.floor(t * c1g + (1 - t) * c0g);
+    const b = Math.floor(t * c1b + (1 - t) * c0b);
+    const a = Math.floor(t * c1a + (1 - t) * c0a);
     
     return makeColor(r, g, b, a);
 }

@@ -61,6 +61,57 @@ function makePrefab(conf: PrefabConf, rows: string[]): Prefab {
 }
 
 
+interface PrefabEntry {
+    priority: number;
+    prefab: Prefab;
+}
+
+
+function makeDungeonGenerator(map: Map, prefabs: PrefabEntry[]) {
+    prefabs.sort((a, b) => a.priority - b.priority);
+    
+    function randomPrefab(): Prefab {
+        const threshold = Math.random();
+        for (let i = 0; i < prefabs.length; ++i) {
+            if (prefabs[i].priority >= threshold) {
+                return prefabs[i].prefab;
+            }
+        }
+        return undefined;
+    }
+    
+    function addRoom(): boolean {
+        const prefab = randomPrefab();
+        if (!prefab) {
+            return false;
+        }
+        return false;
+    }
+    
+    function generate() {
+        const targetRoomCount = Math.floor(Math.random() * 10) + 3;
+        let roomCount = 0;
+        while (roomCount < targetRoomCount) {
+            let succeeded = false;
+            for (let tries = 0; tries < 10; ++tries) {
+                if (addRoom()) {
+                    ++roomCount;
+                    succeeded = true;
+                    break;
+                }
+            }
+            if (!succeeded) {
+                break;
+            }
+        }
+    }
+    
+    return {
+        generate
+    };
+} 
+
+
 
 
 const prefabConf: PrefabConf = {
@@ -95,9 +146,12 @@ const prefab0 = makePrefab(prefabConf, [
     "#.........#",
     "##.......##",
     " ##.....## ",
-    "  ###e###  "
+    "  ###e###  ",
 ]);
 
+const prefabs: PrefabEntry[] = [
+    { priority: 0.5, prefab: prefab0 }
+];
 
 
 function applyPrefab(prefab: Prefab, map: Map, ox: number, oy: number) {
@@ -115,7 +169,10 @@ function applyPrefab(prefab: Prefab, map: Map, ox: number, oy: number) {
 
 
 
-const map = makeMap(200, 200);
+const map = makeMap(100, 80);
+const generator = makeDungeonGenerator(map, prefabs);
+//generator.generate();
+
 applyPrefab(prefab0, map, 1, 1);
 map.forNeighbours(20, 20, 10, (x, y) => {
     map.setFlag(x, y, CellFlag.Walkable);

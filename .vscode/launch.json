@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch",
+            "type": "chrome",
+            "request": "launch",
+            "file": "${workspaceRoot}/index.html",
+            "runtimeArgs": [
+                "--new-window",
+                "--user-data-dir=C:/temp/chrome-dev", //Can be any directory. Makes chrome load in a different directory so that it opens in a new instance.
+                "--remote-debugging-port=9222"
+            ],
+            "webRoot": ".",
+            "sourceMaps": true
+        }
+    ]
+}

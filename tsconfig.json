@@ -6,7 +6,7 @@
         "noImplicitReturns": true,
         "noFallthroughCasesInSwitch": true,
         "forceConsistentCasingInFileNames": true,
-        "inlineSourceMap": true,
+        "sourceMap": true,
         "outFile": "bundle.js"
     }
 }

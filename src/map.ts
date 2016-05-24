@@ -6,8 +6,14 @@ import { shuffleArray } from './util';
 
 export {
     CellFlag,
+    
     Map,
     makeMap,
+    
+    UndoStack,
+    UndoContext,
+    makeUndoStack,
+    makeUndoContext,
 }
 
 
@@ -41,6 +47,19 @@ interface Map {
     
     calcPath(start: Vec2, goal: Vec2): Vec2[];
 }
+
+interface UndoContext {
+    beginRecording(): void;
+    endRecording(): void;
+    undo(): void;
+}
+
+interface UndoStack {
+    pushContext(ox: number, oy: number, width: number, height: number): UndoContext;
+    popContext(): void;
+    popAll(): void;
+}
+
 
 
 function makeMap(width: number, height: number): Map {
@@ -210,20 +229,6 @@ function makeMap(width: number, height: number): Map {
 }
 
 
-
-interface UndoContext {
-    beginRecording(): void;
-    endRecording(): void;
-    undo(): void;
-}
-
-interface UndoStack {
-    pushContext(ox: number, oy: number, width: number, height: number): UndoContext;
-    popContext(): void;
-    popAll(): void;
-}
-
-
 function makeUndoContext(map: Map, ox: number, oy: number, width: number, height: number): UndoContext {
     let begun = false;
     let ended = false;
@@ -286,7 +291,7 @@ function makeUndoContext(map: Map, ox: number, oy: number, width: number, height
 function makeUndoStack(map: Map): UndoStack {
     const stack: UndoContext[] = [];
     
-    function pushContext(ox: number, oy: number, width: number, height: number) {
+    function pushContext(ox: number, oy: number, width: number, height: number): UndoContext {
         const context = makeUndoContext(map, ox, oy, width, height);
         stack.push(context);
         return context;
