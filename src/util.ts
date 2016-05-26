@@ -32,8 +32,8 @@ export function removeFromArray<T>(array: Array<T>, value: T): boolean {
 
 
 // Fisher-Yates
-export function shuffleArray<T>(array: Array<T>): void {
-    let currentIndex = array.length;
+export function shuffleArray<T>(array: Array<T>, count?: number): void {
+    let currentIndex = count === undefined ? array.length : count;
     let temporaryValue: T;
     let randomIndex: number;
 

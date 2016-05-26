@@ -89,6 +89,14 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
             return;
         }
         
+        const path = map.calcPath(new Vec2(20, 20), mapDrawer.cursorPos);
+        if (path) {
+            for (let p of path) {
+                const i = p.y * width + p.x;
+                char[i] = '*'.charCodeAt(0);
+            }
+        }
+        
         fieldOfView(mapDrawer.cursorPos.x, mapDrawer.cursorPos.y, 13, (x, y) => {
             if (!map.isWalkable(x, y)) {
                 return;

@@ -123,11 +123,11 @@ function calcPath(
 ): Node[]
 {
     // setup the arrays
-    const distances: number[] = [];
-    const visited: boolean[] = [];
-    const parents: Node[] = []; // from which node did we reach each node
-    const heapIndexes: number[] = []; // index of each node in the binary heap
-    for (let i = 0; i < numNodes; ++i) {
+    const distances = [Number.MAX_VALUE];
+    const visited = [false];
+    const parents = [-1]; // from which node did we reach each node
+    const heapIndexes = [-1]; // index of each node in the binary heap
+    for (let i = 1; i < numNodes; ++i) {
         distances.push(Number.MAX_VALUE);
         visited.push(false);
         parents.push(-1);
@@ -136,15 +136,12 @@ function calcPath(
 
     // create a binary heap which we will use to find the
     // unvisited node with the shortest distance from start
-    function isLess(node1: number, node2: number) {
-        return distances[node1] < distances[node2];
-    }
-    function setIndex(node: number, index: number) {
-        heapIndexes[node] = index;
-    }
-    const heap = makeBinaryHeap(isLess, setIndex);
+    const heap = makeBinaryHeap<Node>(
+        (a, b) => distances[a] < distances[b],
+        (n, i) => heapIndexes[n] = i
+    );
 
-    const neighbours: number[] = [];
+    const neighbours = [0,0,0,0,0,0,0,0];
     distances[start] = 0;
     heap.push(start);
 
@@ -187,30 +184,26 @@ function calcPath(
 
 // create a function which calculates the neighbours of a given node, in a grid.
 // "node" is a 1D index into an array of size "width" x "height" representing the 2D grid
-function makeNeighbourCalc(width: number, height: number) {
+function makeNeighbourCalc(eightDirections: boolean, width: number, height: number, isWalkable: (x: number, y: number) => boolean) {
     // coordinate deltas for children in all 8 directions, starting north
-    const diffX = [ 0, 1, 1, 1, 0,-1,-1,-1];
-    const diffY = [-1,-1, 0, 1, 1, 1, 0,-1];
+    const diffX = eightDirections ? [ 0, 1, 1, 1, 0,-1,-1,-1] : [ 0,1,0,-1];
+    const diffY = eightDirections ? [-1,-1, 0, 1, 1, 1, 0,-1] : [-1,0,1, 0];
 
     return (node: Node, result: Node[]): number => {
-        if (result.length < 8) {
-            result.length = 8;
-        }
-
         const nodeX = node % width;
         const nodeY = Math.floor(node / width);
-
-        let out = 0;
-        for (let i = 0; i < 8; ++i) {
-            const neighX = nodeX + diffX[i];
-            const neighY = nodeY + diffY[i];
-            if (neighX < 0 || neighY < 0 || neighX >= width || neighY >= height) {
+        let resultCount = 0;
+        for (let i = 0; i < diffX.length; ++i) {
+            const x = nodeX + diffX[i];
+            const y = nodeY + diffY[i];
+            if (x < 0 || y < 0 || x >= width || y >= height) {
                 continue;
             }
-
-            const neigh = neighY*width + neighX;
-            result[out++] = neigh;
+            if (!isWalkable(x, y)) {
+                continue;
+            }
+            result[resultCount++] = y * width + x;
         }
-        return out;
+        return resultCount;
     };
 }

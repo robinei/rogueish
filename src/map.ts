@@ -36,8 +36,6 @@ interface Map {
     clearFlag(x: number, y: number, f: CellFlag): void;
     
     isWalkable(x: number, y: number): boolean;
-    isVisible(x: number, y: number): boolean;
-    isDiscovered(x: number, y: number): boolean;
     isWall(x: number, y: number): boolean;
     
     resetVisible(): void;
@@ -65,7 +63,7 @@ interface UndoStack {
 function makeMap(width: number, height: number): Map {
     const cellCount = width * height;
     const flags = [0 as CellFlag];
-    const calcNeigh = makeNeighbourCalc(width, height);
+    const calcNeigh = makeNeighbourCalc(false, width, height, isWalkable);
     
     flags.length = cellCount;
     for (let i = 0; i < cellCount; ++i) {
@@ -104,11 +102,8 @@ function makeMap(width: number, height: number): Map {
         flags[y * width + x] &= ~f;
     }
     
-    
-    function resetVisible(): void {
-        for (let i = 0; i < cellCount; ++i) {
-            flags[i] &= ~CellFlag.Visible;
-        }
+    function isWalkable(x: number, y: number): boolean {
+        return isFlagSet(x, y, CellFlag.Walkable);
     }
     
     function isWall(x: number, y: number): boolean {
@@ -125,6 +120,12 @@ function makeMap(width: number, height: number): Map {
             }
         }
         return false;
+    }
+    
+    function resetVisible(): void {
+        for (let i = 0; i < cellCount; ++i) {
+            flags[i] &= ~CellFlag.Visible;
+        }
     }
     
 
@@ -173,21 +174,16 @@ function makeMap(width: number, height: number): Map {
     }
     
     function distanceCalc(a: number, b: number): number {
-        if ((flags[b] & CellFlag.Walkable) === 0) {
-            return Number.MAX_VALUE;
-        }
-        
         const ax = a % width;
         const ay = Math.floor(a / width);
         
-        const bx = a % width;
+        const bx = b % width;
         const by = Math.floor(b / width);
         
         const deltaX = bx - ax;
         const deltaY = by - ay;
         
-        // don't bother with sqrt since we dont use the distances for other than comparison
-        return deltaX * deltaX + deltaY * deltaY;
+        return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
     }
     
     function calcPath(start: Vec2, goal: Vec2): Vec2[] {
@@ -218,8 +214,6 @@ function makeMap(width: number, height: number): Map {
         setFlag,
         clearFlag,
         isWalkable: (x, y) => isFlagSet(x, y, CellFlag.Walkable),
-        isVisible: (x, y) => isFlagSet(x, y, CellFlag.Visible),
-        isDiscovered: (x, y) => isFlagSet(x, y, CellFlag.Discovered),
         isWall,
         resetVisible,
         forNeighbours,
