@@ -8,48 +8,41 @@ export {
 }
 
 
-interface BinaryHeap<Value> {
-    getCount(): number;
-    push(value: Value): void;
-    pop(): Value;
-    swapUpward(i: number): void;
-}
-
-
-function makeBinaryHeap<Value>(
-    isValueLess: (a: Value, b: Value) => boolean,
-    setIndex: (value: Value, index: number) => void
-): BinaryHeap<Value>
-{
-    const heap: Value[] = [];
+class BinaryHeap<Value> {
+    private heap: Value[] = [];
     
-    function isLess(i: number, j: number) {
-        return isValueLess(heap[i], heap[j]);
+    private isLess: (i: number, j: number) => boolean;
+    private setIndex: (value: Value, index: number) => void;
+    
+    constructor(isValueLess: (a: Value, b: Value) => boolean,
+                setIndex?: (value: Value, index: number) => void) {
+        this.isLess = function (i, j) { return isValueLess(this.heap[i], this.heap[j]); };
+        this.setIndex = setIndex || function () { };
     }
     
-    function swap(i: number, j: number) {
-        const temp = heap[i];
-        heap[i] = heap[j];
-        heap[j] = temp;
-        setIndex(heap[i], i);
-        setIndex(heap[j], j);
+    private swap(i: number, j: number): void {
+        const temp = this.heap[i];
+        this.heap[i] = this.heap[j];
+        this.heap[j] = temp;
+        this.setIndex(this.heap[i], i);
+        this.setIndex(this.heap[j], j);
     }
 
-    function swapDownward(i: number) {
+    private swapDownward(i: number): void {
         while (true) {
             const child1 = (i * 2) + 1;
             const child2 = (i * 2) + 2;
 
-            if (child1 < heap.length && isLess(child1, i)) {
-                if (child2 < heap.length && isLess(child2, child1)) {
-                    swap(i, child2);
+            if (child1 < this.heap.length && this.isLess(child1, i)) {
+                if (child2 < this.heap.length && this.isLess(child2, child1)) {
+                    this.swap(i, child2);
                     i = child2;
                 } else {
-                    swap(i, child1);
+                    this.swap(i, child1);
                     i = child1;
                 }
-            } else if (child2 < heap.length && isLess(child2, i)) {
-                swap(i, child2);
+            } else if (child2 < this.heap.length && this.isLess(child2, i)) {
+                this.swap(i, child2);
                 i = child2;
             } else {
                 break;
@@ -57,42 +50,39 @@ function makeBinaryHeap<Value>(
         }
     }
 
-    function swapUpward(i: number) {
+    swapUpward(i: number): void {
         while (i > 0) {
             const parent = Math.floor((i - 1) / 2);
-            if (!isLess(i, parent)) {
+            if (!this.isLess(i, parent)) {
                 break;
             }
-            swap(i, parent);
+            this.swap(i, parent);
             i = parent;
         }
     }
 
-    function push(value: Value) {
-        const i = heap.length;
-        setIndex(value, i);
-        heap.push(value);
-        swapUpward(i);
+    push(value: Value): void {
+        const i = this.heap.length;
+        this.setIndex(value, i);
+        this.heap.push(value);
+        this.swapUpward(i);
     }
 
-    function pop() {
-        const top = heap[0];
-        setIndex(top, -1);
-        const last = heap.pop();
-        if (heap.length > 0) {
-            heap[0] = last;
-            setIndex(last, 0);
-            swapDownward(0);
+    pop(): Value {
+        const top = this.heap[0];
+        this.setIndex(top, -1);
+        const last = this.heap.pop();
+        if (this.heap.length > 0) {
+            this.heap[0] = last;
+            this.setIndex(last, 0);
+            this.swapDownward(0);
         }
         return top;
     }
     
-    return {
-        getCount: () => heap.length,
-        push,
-        pop,
-        swapUpward,
-    };
+    getCount() {
+        return this.heap.length;
+    }
 }
 
 
@@ -145,7 +135,7 @@ function calcPath(
 
     // create a binary heap which we will use to find the
     // unvisited node with the shortest distance from start
-    const heap = makeBinaryHeap<Node>(
+    const heap = new BinaryHeap<Node>(
         (a, b) => costs[a] + heuristics[a] < costs[b] + heuristics[b],
         (n, i) => heapIndexes[n] = i
     );
