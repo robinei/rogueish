@@ -21,7 +21,7 @@ export function valueOrDefault<T>(val: T, def: T): T {
 
 
 // only removes one value
-export function removeFromArray<T>(array: Array<T>, value: T): boolean {
+export function removeFromArray<T>(array: T[], value: T): boolean {
     const i = array.indexOf(value);
     if (i < 0) {
         return false;
@@ -32,7 +32,7 @@ export function removeFromArray<T>(array: Array<T>, value: T): boolean {
 
 
 // Fisher-Yates
-export function shuffleArray<T>(array: Array<T>, count?: number): void {
+export function shuffleArray<T>(array: T[], count?: number): void {
     let currentIndex = count === undefined ? array.length : count;
     let temporaryValue: T;
     let randomIndex: number;
@@ -48,18 +48,4 @@ export function shuffleArray<T>(array: Array<T>, count?: number): void {
         array[currentIndex] = array[randomIndex];
         array[randomIndex] = temporaryValue;
     }
-}
-
-
-/**
- * LINQ-like where function
- */
-export function arrayWhere<T>(array: Array<T>, func: (value: T) => boolean): Array<T> {
-    const retval = new Array<T>();
-    for (let i = 0; i < array.length; i++) {
-        if (func(array[i])) {
-            retval.push(array[i]);
-        }
-    }
-    return retval;
 }
