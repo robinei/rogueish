@@ -1,12 +1,12 @@
 
-export function getObjectName(object: any): string { 
+export function getObjectName(object: any): string {
     const funcNameRegex = /function (.{1,})\(/;
     const results = (funcNameRegex).exec(object.constructor.toString());
     return (results && results.length > 1) ? results[1] : "";
 }
 
-export function toBoolean(parameter: any) {
-    if(parameter) {
+export function toBoolean(parameter: any): boolean {
+    if (parameter) {
         return true;
     }
     return false;

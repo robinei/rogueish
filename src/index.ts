@@ -1,9 +1,8 @@
-import { CellFlag, Map, makeMap } from './map';
-import { makeMapDrawer } from './mapdrawer';
-import { CHAR_DIM, makeDisplay } from './display';
-import { fieldOfView } from './fov';
-import { toStringColor, makeColor, parseColor } from './color';
-import { Vec2 } from './math';
+import { CellFlag, Map, makeMap } from "./map";
+import { makeMapDrawer } from "./mapdrawer";
+import { CHAR_DIM, makeDisplay } from "./display";
+import { fieldOfView } from "./fov";
+import { Vec2 } from "./math";
 
 
 interface PrefabCellSpec {
@@ -26,23 +25,23 @@ interface Prefab {
 
 function makePrefab(conf: PrefabConf, rows: string[]): Prefab {
     rows = Object.freeze(rows);
-    
+
     const entrances: Vec2[] = [];
-    
+
     const height = rows.length;
     if (height === 0) {
-        throw new Error('expected 1 or more rows');
+        throw new Error("expected 1 or more rows");
     }
-    
+
     const width = rows[0].length;
     if (width === 0) {
-        throw new Error('expected 1 or more characters in row');
+        throw new Error("expected 1 or more characters in row");
     }
-    
+
     // find the entrances
     for (let y = 0; y < height; ++y) {
-        if (rows[y].length != width) {
-            throw new Error('expected all rows to be of length: ' + width);
+        if (rows[y].length !== width) {
+            throw new Error("expected all rows to be of length: " + width);
         }
         for (let x = 0; x < width; ++x) {
             if (conf.isEntrance(rows[y][x])) {
@@ -50,13 +49,13 @@ function makePrefab(conf: PrefabConf, rows: string[]): Prefab {
             }
         }
     }
-    
+
     return {
         conf,
         rows,
         width,
         height,
-        entrances
+        entrances,
     };
 }
 
@@ -69,7 +68,7 @@ interface PrefabEntry {
 
 function makeDungeonGenerator(map: Map, prefabs: PrefabEntry[]) {
     prefabs.sort((a, b) => a.priority - b.priority);
-    
+
     function randomPrefab(): Prefab {
         const threshold = Math.random();
         for (let i = 0; i < prefabs.length; ++i) {
@@ -79,7 +78,7 @@ function makeDungeonGenerator(map: Map, prefabs: PrefabEntry[]) {
         }
         return undefined;
     }
-    
+
     function addRoom(): boolean {
         const prefab = randomPrefab();
         if (!prefab) {
@@ -87,7 +86,7 @@ function makeDungeonGenerator(map: Map, prefabs: PrefabEntry[]) {
         }
         return false;
     }
-    
+
     function generate() {
         const targetRoomCount = Math.floor(Math.random() * 10) + 3;
         let roomCount = 0;
@@ -105,59 +104,64 @@ function makeDungeonGenerator(map: Map, prefabs: PrefabEntry[]) {
             }
         }
     }
-    
+
     return {
-        generate
+        generate,
     };
-} 
+}
 
 
 
 
 const prefabConf: PrefabConf = {
-    isEntrance: char => char == 'e',
+    isEntrance: char => char === "e",
     applyCell: (map, x, y, spec) => {
         switch (spec.char) {
-        case '.':
+        case ".":
             map.setFlags(x, y, CellFlag.Walkable);
             break;
-        case 'e':
+        case "e":
             if (spec.wantEntrance) {
                 map.setFlags(x, y, CellFlag.Walkable);
             } else {
                 map.setFlags(x, y, 0);
             }
             break;
-        case '#':
+        case "#":
             map.setFlags(x, y, 0);
+            break;
+        default:
             break;
         }
     },
 };
 
-const prefab0 = makePrefab(prefabConf, [
-    "  ###e###  ",
-    " ##.....## ",
-    "##.......##",
-    "#.........#",
-    "#....#....#",
-    "e...###...e",
-    "#....#....#",
-    "#.........#",
-    "##.......##",
-    " ##.....## ",
-    "  ###e###  ",
-]);
+const prefab0 = makePrefab(
+    prefabConf,
+    [
+        "  ###e###  ",
+        " ##.....## ",
+        "##.......##",
+        "#.........#",
+        "#....#....#",
+        "e...###...e",
+        "#....#....#",
+        "#.........#",
+        "##.......##",
+        " ##.....## ",
+        "  ###e###  ",
+    ]
+);
 
 const prefabs: PrefabEntry[] = [
-    { priority: 0.5, prefab: prefab0 }
+    { priority: 0.5, prefab: prefab0 },
 ];
 
 
 function applyPrefab(prefab: Prefab, map: Map, ox: number, oy: number) {
     const spec: PrefabCellSpec = {
         wantEntrance: false,
-        char: ''
+        char: "",
     };
     for (let y = 0; y < prefab.height; ++y) {
         for (let x = 0; x < prefab.width; ++x) {
@@ -171,7 +175,7 @@ function applyPrefab(prefab: Prefab, map: Map, ox: number, oy: number) {
 
 const map = makeMap(100, 80);
 const generator = makeDungeonGenerator(map, prefabs);
-//generator.generate();
+generator.generate();
 
 applyPrefab(prefab0, map, 1, 1);
 map.forNeighbours(20, 20, 10, (x, y) => {
@@ -186,7 +190,7 @@ map.clearFlag(30, 19, CellFlag.Walkable);
 map.clearFlag(30, 20, CellFlag.Walkable);
 
 
-const canvas = document.getElementById('canvas') as HTMLCanvasElement;
+const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const display = makeDisplay(canvas, runApp, onDraw);
 const mapDrawer = makeMapDrawer(map, display);
 mapDrawer.pathOrigin = new Vec2(20, 20);
@@ -197,10 +201,10 @@ function onDraw() {
 }
 
 function runApp() {
-    window.addEventListener('resize', resizeCanvas);
-    document.addEventListener('keydown', onKeyDown);
-    document.addEventListener('mousemove', onMouseMove);
-    canvas.addEventListener('click', onClick);
+    window.addEventListener("resize", resizeCanvas);
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("mousemove", onMouseMove);
+    canvas.addEventListener("click", onClick);
     resizeCanvas();
 }
 
@@ -239,12 +243,15 @@ function onMouseMove(e: MouseEvent) {
         return;
     }
     mapDrawer.cursorPos = pos;
-    
+
     map.resetVisible();
-    fieldOfView(pos.x, pos.y, 100, (x, y) => {
-        map.setFlag(x, y, CellFlag.Visible | CellFlag.Discovered);
-    }, (x, y) => !map.isWalkable(x, y));
-    
+    fieldOfView(
+        pos.x, pos.y, 100,
+        (x, y) => {
+            map.setFlag(x, y, CellFlag.Visible | CellFlag.Discovered);
+        },
+        (x, y) => !map.isWalkable(x, y)
+    );
+
     display.redraw();
 }
-

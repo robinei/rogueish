@@ -14,19 +14,18 @@ function fieldOfView(
     r: number,
     visit: (x: number, y: number) => void,
     blocked: (x: number, y: number) => boolean
-): void
-{
+): void {
     visit(ox, oy); // origin always visited.
 
     function quadrant(dx: number, dy: number, skipX: number, skipY: number): void {
         const arcs = [new Arc(new Ln(1, 0, 0, r), new Ln(0, 1, r, 0))];
-        
+
         for (let dr = 1; dr <= r; ++dr) {
             for (let i = 0; i <= dr; ++i) {
                 // Check for light hitting this cell.
                 const cellX = dr - i;
                 const cellY = i;
-                
+
                 // Find index of Arc that hits the point, or continue if none do.
                 let arci = 0;
                 for (; arci < arcs.length; ++arci) {
@@ -41,7 +40,7 @@ function fieldOfView(
                 // Show the lit cell, check if blocking.
                 const ax = ox + cellX * dx;
                 const ay = oy + cellY * dy;
-                if (ax != skipX && ay != skipY) {
+                if (ax !== skipX && ay !== skipY) {
                     visit(ax, ay);
                 }
                 if (!blocked(ax, ay)) {
@@ -95,7 +94,7 @@ class Ln {
 class Arc {
     steep: Ln;
     shallow: Ln;
-    
+
     steepBumpsX: number[] = [];
     steepBumpsY: number[] = [];
     shallowBumpsX: number[] = [];

@@ -1,15 +1,15 @@
-import { Vec2 } from './math';
-import { Direction, dirDX, dirDY } from './direction';
-import { findPath, makeGridNodeExpander } from './pathfind';
-import { shuffleArray } from './util';
+import { Vec2 } from "./math";
+import { dirDX, dirDY } from "./direction";
+import { findPath, makeGridNodeExpander } from "./pathfind";
+import { shuffleArray } from "./util";
 
 
 export {
     CellFlag,
-    
+
     Map,
     makeMap,
-    
+
     UndoStack,
     UndoContext,
     makeUndoStack,
@@ -28,21 +28,21 @@ interface Map {
     width: number;
     height: number;
     flags: CellFlag[];
-    
+
     getFlags(x: number, y: number): CellFlag;
     setFlags(x: number, y: number, f: CellFlag): void;
     isFlagSet(x: number, y: number, f: CellFlag): boolean;
     setFlag(x: number, y: number, f: CellFlag): void;
     clearFlag(x: number, y: number, f: CellFlag): void;
-    
+
     isWalkable(x: number, y: number): boolean;
     isWall(x: number, y: number): boolean;
-    
+
     resetVisible(): void;
-    
+
     forNeighbours(originX: number, originY: number, radius: number, func: (cellX: number, cellY: number) => boolean): void;
     forNeighboursUnbiased(originX: number, originY: number, radius: number, func: (cellX: number, cellY: number) => boolean): void;
-    
+
     calcPath(start: Vec2, goal: Vec2): Vec2[];
 }
 
@@ -60,17 +60,32 @@ interface UndoStack {
 
 
 
+
+
+interface AreaPos {
+    x: number;
+    y: number;
+    distance: number;
+}
+
+const areaPositionsByDistance: AreaPos[] = [];
+const areaPositionBuckets: AreaPos[][] = [];
+const maxAreaRadius = 32;
+
+
+
+
 function makeMap(width: number, height: number): Map {
     const cellCount = width * height;
     const flags = [0 as CellFlag];
     const expandNode = makeGridNodeExpander(false, width, height, isWalkable);
-    
+
     flags.length = cellCount;
     for (let i = 0; i < cellCount; ++i) {
         flags[i] = 0;
     }
-    
-    
+
+
     function getFlags(x: number, y: number): CellFlag {
         if (x < 0 || y < 0 || x >= width || y >= height) {
             return 0;
@@ -87,7 +102,7 @@ function makeMap(width: number, height: number): Map {
         if (x < 0 || y < 0 || x >= width || y >= height) {
             return false;
         }
-        return (flags[y * width + x] & f) != 0;
+        return (flags[y * width + x] & f) !== 0;
     }
     function setFlag(x: number, y: number, f: CellFlag): void {
         if (x < 0 || y < 0 || x >= width || y >= height) {
@@ -101,11 +116,11 @@ function makeMap(width: number, height: number): Map {
         }
         flags[y * width + x] &= ~f;
     }
-    
+
     function isWalkable(x: number, y: number): boolean {
         return isFlagSet(x, y, CellFlag.Walkable);
     }
-    
+
     function isWall(x: number, y: number): boolean {
         if ((flags[y * width + x] & CellFlag.Walkable) === 0) {
             for (let dir = 0; dir < 8; ++dir) {
@@ -114,20 +129,20 @@ function makeMap(width: number, height: number): Map {
                 if (nx < 0 || ny < 0 || nx >= width || ny >= height) {
                     continue;
                 }
-                if ((flags[ny * width + nx] & CellFlag.Walkable) != 0) {
+                if ((flags[ny * width + nx] & CellFlag.Walkable) !== 0) {
                     return true;
                 }
             }
         }
         return false;
     }
-    
+
     function resetVisible(): void {
         for (let i = 0; i < cellCount; ++i) {
             flags[i] &= ~CellFlag.Visible;
         }
     }
-    
+
 
     function forNeighbours(originX: number, originY: number, radius: number, func: (cellX: number, cellY: number) => boolean): void {
         if (radius > maxAreaRadius) {
@@ -148,8 +163,9 @@ function makeMap(width: number, height: number): Map {
             }
         }
     }
-    
-    function forNeighboursUnbiased(originX: number, originY: number, radius: number, func: (cellX: number, cellY: number) => boolean): void {
+
+    function forNeighboursUnbiased(originX: number, originY: number, radius: number,
+                                   func: (cellX: number, cellY: number) => boolean): void {
         if (radius > maxAreaRadius) {
             throw "too big radius";
         }
@@ -172,20 +188,20 @@ function makeMap(width: number, height: number): Map {
             }
         }
     }
-    
+
     function calcDistance(a: number, b: number): number {
         const ax = a % width;
         const ay = Math.floor(a / width);
-        
+
         const bx = b % width;
         const by = Math.floor(b / width);
-        
+
         const deltaX = bx - ax;
         const deltaY = by - ay;
-        
+
         return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
     }
-    
+
     function calcPath(start: Vec2, goal: Vec2): Vec2[] {
         const startIndex = start.y * width + start.x;
         const goalIndex = goal.y * width + goal.x;
@@ -202,8 +218,8 @@ function makeMap(width: number, height: number): Map {
         }
         return path;
     }
-    
-    
+
+
     return {
         width,
         height,
@@ -218,7 +234,7 @@ function makeMap(width: number, height: number): Map {
         resetVisible,
         forNeighbours,
         forNeighboursUnbiased,
-        calcPath
+        calcPath,
     };
 }
 
@@ -230,7 +246,7 @@ function makeUndoContext(map: Map, ox: number, oy: number, width: number, height
     const flagsDirty = [false];
     flagsOrig.length = width * height;
     flagsDirty.length = width * height;
-    
+
     function beginRecording() {
         if (begun) {
             throw new Error("beginRecording() called twice");
@@ -243,7 +259,7 @@ function makeUndoContext(map: Map, ox: number, oy: number, width: number, height
             }
         }
     }
-    
+
     function endRecording() {
         if (!begun) {
             throw new Error("endRecording() called before beginRecording()");
@@ -255,11 +271,11 @@ function makeUndoContext(map: Map, ox: number, oy: number, width: number, height
         for (let y = 0; y < height; ++y) {
             for (let x = 0; x < width; ++x) {
                 const i = y * width + x;
-                flagsDirty[i] = flagsOrig[i] != map.getFlags(ox + x, oy + y);
+                flagsDirty[i] = flagsOrig[i] !== map.getFlags(ox + x, oy + y);
             }
         }
     }
-    
+
     function undo() {
         if (!ended) {
             throw new Error("undo() called before endRecording()");
@@ -273,53 +289,43 @@ function makeUndoContext(map: Map, ox: number, oy: number, width: number, height
             }
         }
     }
-    
+
     return {
         beginRecording,
         endRecording,
-        undo
+        undo,
     };
 }
 
 
 function makeUndoStack(map: Map): UndoStack {
     const stack: UndoContext[] = [];
-    
+
     function pushContext(ox: number, oy: number, width: number, height: number): UndoContext {
         const context = makeUndoContext(map, ox, oy, width, height);
         stack.push(context);
         return context;
     }
-    
+
     function popContext() {
         stack.pop().undo();
     }
-    
+
     function popAll() {
         while (stack.length > 0) {
             stack.pop().undo();
         }
     }
-    
+
     return {
         pushContext,
         popContext,
-        popAll
+        popAll,
     };
 }
 
 
 
-
-interface AreaPos {
-    x: number;
-    y: number;
-    distance: number;
-}
-
-const areaPositionsByDistance: AreaPos[] = [];
-const areaPositionBuckets: AreaPos[][] = [];
-const maxAreaRadius = 32;
 
 {
     for (let y = -maxAreaRadius; y <= maxAreaRadius; ++y) {
@@ -329,20 +335,20 @@ const maxAreaRadius = 32;
             areaPositionsByDistance.push({
                 x: x,
                 y: y,
-                distance: Math.sqrt(cx*cx + cy*cy)
+                distance: Math.sqrt(cx * cx + cy * cy),
             });
         }
     }
     areaPositionsByDistance.sort(function(a: AreaPos, b: AreaPos) {
         return a.distance - b.distance;
     });
-    
+
     let currDistance = -1;
     let currBucket: AreaPos[] = undefined;
     for (let i = 0; i < areaPositionsByDistance.length; ++i) {
         const pos = areaPositionsByDistance[i];
         const d = Math.floor(pos.distance);
-        if (d != currDistance) {
+        if (d !== currDistance) {
             if (currBucket !== undefined) {
                 areaPositionBuckets.push(currBucket);
             }

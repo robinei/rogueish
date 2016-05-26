@@ -1,4 +1,4 @@
-import { Direction, dirDX, dirDY } from './direction';
+import { Direction, dirDX, dirDY } from "./direction";
 
 
 export class Vec2 {
@@ -9,7 +9,7 @@ export class Vec2 {
         this.x = x;
         this.y = y;
     }
-    
+
     equals(p: Vec2): boolean {
         if (!p) {
             return false;
@@ -33,11 +33,11 @@ export class Vec2 {
         }
         return undefined;
     }
-    
+
     sub(p: Vec2): Vec2 {
         return new Vec2(this.x - p.x, this.y - p.y);
     }
-    
+
     add(p: Vec2): Vec2 {
         return new Vec2(this.x + p.x, this.y + p.y);
     }
@@ -45,7 +45,7 @@ export class Vec2 {
     dirVector(dir: Direction) {
         return [dirDX[dir], dirDY[dir]];
     }
-    
+
     toString(): string {
         return `Vec2(${this.x}, ${this.y})`;
     }
@@ -57,28 +57,28 @@ export class Rect {
     y: number = 0;
     width: number = 0;
     height: number = 0;
-    
-    x1() : number {
-        return this.x + this.width;
-    }
-    y1() : number {
-        return this.y + this.height;
-    }
-    
-    getPosition(): Vec2 {
-        return new Vec2(this.x, this.y);
-    }
-    
+
     constructor(x: number, y: number, width: number, height: number) {
         this.x = x;
         this.y = y;
         this.width = width;
         this.height = height;
     }
-    
+
+    x1(): number {
+        return this.x + this.width;
+    }
+    y1(): number {
+        return this.y + this.height;
+    }
+
+    getPosition(): Vec2 {
+        return new Vec2(this.x, this.y);
+    }
+
     intersects(r: Rect): boolean {
-        return !(r.x > this.x1() || 
-                    r.x1() < this.x || 
+        return !(r.x > this.x1() ||
+                    r.x1() < this.x ||
                     r.y > this.y1() ||
                     r.y1() < this.y);
     }
@@ -96,6 +96,6 @@ export function sigNum(num: number): number {
 }
 
 
-export function interpolate(a:number, b:number, t:number) {
-    return a * (1-t) + b * t;
+export function interpolate(a: number, b: number, t: number) {
+    return a * (1 - t) + b * t;
 }

@@ -11,6 +11,6 @@ export enum Direction {
 }
 
 
-export const dirDX = [0,1,1,1,0,-1,-1,-1];
-export const dirDY = [-1,-1,0,1,1,1,0,-1];
+export const dirDX = [ 0,   1, 1, 1, 0, -1, -1, -1];
+export const dirDY = [ -1, -1, 0, 1, 1,  1,  0, -1];
 

@@ -7,22 +7,49 @@ export {
 
 class BinaryHeap<Value> {
     private heap: Value[] = [];
-    
+
     private isLess: (i: number, j: number) => boolean;
     private setIndex: (value: Value, index: number) => void;
-    
+
     constructor(isValueLess: (a: Value, b: Value) => boolean,
                 setIndex?: (value: Value, index: number) => void) {
+        // tslint:disable-next-line:no-invalid-this
         this.isLess = function (i, j) { return isValueLess(this.heap[i], this.heap[j]); };
         this.setIndex = setIndex || function () { };
     }
-    
-    private swap(i: number, j: number): void {
-        const temp = this.heap[i];
-        this.heap[i] = this.heap[j];
-        this.heap[j] = temp;
-        this.setIndex(this.heap[i], i);
-        this.setIndex(this.heap[j], j);
+
+    getCount() {
+        return this.heap.length;
+    }
+
+    push(value: Value): void {
+        const i = this.heap.length;
+        this.setIndex(value, i);
+        this.heap.push(value);
+        this.swapUpward(i);
+    }
+
+    pop(): Value {
+        const top = this.heap[0];
+        this.setIndex(top, -1);
+        const last = this.heap.pop();
+        if (this.heap.length > 0) {
+            this.heap[0] = last;
+            this.setIndex(last, 0);
+            this.swapDownward(0);
+        }
+        return top;
+    }
+
+    swapUpward(i: number): void {
+        while (i > 0) {
+            const parent = Math.floor((i - 1) / 2);
+            if (!this.isLess(i, parent)) {
+                break;
+            }
+            this.swap(i, parent);
+            i = parent;
+        }
     }
 
     private swapDownward(i: number): void {
@@ -47,38 +74,12 @@ class BinaryHeap<Value> {
         }
     }
 
-    swapUpward(i: number): void {
-        while (i > 0) {
-            const parent = Math.floor((i - 1) / 2);
-            if (!this.isLess(i, parent)) {
-                break;
-            }
-            this.swap(i, parent);
-            i = parent;
-        }
-    }
-
-    push(value: Value): void {
-        const i = this.heap.length;
-        this.setIndex(value, i);
-        this.heap.push(value);
-        this.swapUpward(i);
-    }
-
-    pop(): Value {
-        const top = this.heap[0];
-        this.setIndex(top, -1);
-        const last = this.heap.pop();
-        if (this.heap.length > 0) {
-            this.heap[0] = last;
-            this.setIndex(last, 0);
-            this.swapDownward(0);
-        }
-        return top;
-    }
-    
-    getCount() {
-        return this.heap.length;
+    private swap(i: number, j: number): void {
+        const temp = this.heap[i];
+        this.heap[i] = this.heap[j];
+        this.heap[j] = temp;
+        this.setIndex(this.heap[i], i);
+        this.setIndex(this.heap[j], j);
     }
 }
 
@@ -116,8 +117,7 @@ function findPath(
     goal: Node,
     calcDistance: (a: Node, b: Node) => number,
     expandNode: (node: Node, result: Node[]) => number
-): Node[]
-{
+): Node[] {
     // setup the arrays
     const states = [NodeState.Virgin];
     const heuristics = [Number.MAX_VALUE];
@@ -139,7 +139,7 @@ function findPath(
         (n, i) => heapIndexes[n] = i
     );
 
-    const neighbours = [0,0,0,0,0,0,0,0];
+    const neighbours = [0, 0, 0, 0, 0, 0, 0, 0];
     states[start] = NodeState.Open;
     heuristics[start] = calcDistance(start, goal);
     costs[start] = 0;
@@ -156,7 +156,7 @@ function findPath(
 
         for (let i = 0; i < count; ++i) {
             const next = neighbours[i];
-            if (states[next] == NodeState.Closed) {
+            if (states[next] === NodeState.Closed) {
                 continue;
             }
 
@@ -188,8 +188,8 @@ function findPath(
 // "node" is a 1D index into an array of size "width" x "height" representing the 2D grid
 function makeGridNodeExpander(eightDirections: boolean, width: number, height: number, isWalkable: (x: number, y: number) => boolean) {
     // coordinate deltas for children in all 8 or 4 directions, starting north going clockwise
-    const diffX = eightDirections ? [ 0, 1, 1, 1, 0,-1,-1,-1] : [ 0,1,0,-1];
-    const diffY = eightDirections ? [-1,-1, 0, 1, 1, 1, 0,-1] : [-1,0,1, 0];
+    const diffX = eightDirections ? [ 0,  1, 1, 1, 0, -1, -1, -1] : [  0, 1, 0, -1];
+    const diffY = eightDirections ? [-1, -1, 0, 1, 1,  1,  0, -1] : [ -1, 0, 1,  0];
 
     return (node: Node, result: Node[]): number => {
         const nodeX = node % width;
