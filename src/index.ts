@@ -189,6 +189,7 @@ map.clearFlag(30, 20, CellFlag.Walkable);
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
 const display = makeDisplay(canvas, runApp, onDraw);
 const mapDrawer = makeMapDrawer(map, display);
+mapDrawer.pathOrigin = new Vec2(20, 20);
 
 
 function onDraw() {
@@ -211,6 +212,7 @@ function resizeCanvas() {
 
 function onClick(e: MouseEvent) {
     console.log("click");
+    mapDrawer.pathOrigin = mapDrawer.cursorPos;
     const p = mapDrawer.canvasCoordToWorldTileCoord(e.clientX, e.clientY);
     mapDrawer.corner.x = p.x - Math.floor(0.5 * canvas.width / CHAR_DIM);
     mapDrawer.corner.y = p.y - Math.floor(0.5 * canvas.height / CHAR_DIM);

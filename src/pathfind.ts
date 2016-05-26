@@ -114,6 +114,13 @@ function constructPath(start: Node, curr: Node, parents: Node[]): Node[] {
 }
 
 
+enum NodeState {
+    Virgin,
+    Open,
+    Closed,
+}
+
+
 function calcPath(
     numNodes: number,
     start: Node,
@@ -123,13 +130,15 @@ function calcPath(
 ): Node[]
 {
     // setup the arrays
-    const distances = [Number.MAX_VALUE];
-    const visited = [false];
+    const states = [NodeState.Virgin];
+    const heuristics = [Number.MAX_VALUE];
+    const costs = [Number.MAX_VALUE];
     const parents = [-1]; // from which node did we reach each node
     const heapIndexes = [-1]; // index of each node in the binary heap
     for (let i = 1; i < numNodes; ++i) {
-        distances.push(Number.MAX_VALUE);
-        visited.push(false);
+        states.push(NodeState.Virgin);
+        heuristics.push(Number.MAX_VALUE);
+        costs.push(Number.MAX_VALUE);
         parents.push(-1);
         heapIndexes.push(-1);
     }
@@ -137,12 +146,14 @@ function calcPath(
     // create a binary heap which we will use to find the
     // unvisited node with the shortest distance from start
     const heap = makeBinaryHeap<Node>(
-        (a, b) => distances[a] < distances[b],
+        (a, b) => costs[a] + heuristics[a] < costs[b] + heuristics[b],
         (n, i) => heapIndexes[n] = i
     );
 
     const neighbours = [0,0,0,0,0,0,0,0];
-    distances[start] = 0;
+    states[start] = NodeState.Open;
+    heuristics[start] = calcDist(start, goal);
+    costs[start] = 0;
     heap.push(start);
 
     while (heap.getCount() > 0) {
@@ -151,29 +162,31 @@ function calcPath(
             return constructPath(start, curr, parents);
         }
 
-        visited[curr] = true;
+        states[curr] = NodeState.Closed;
         const numNeigh = calcNeigh(curr, neighbours);
 
         for (let i = 0; i < numNeigh; ++i) {
             const neigh = neighbours[i];
-            if (visited[neigh]) {
+            if (states[neigh] == NodeState.Closed) {
                 continue;
             }
 
-            const dist = distances[curr] + calcDist(curr, neigh);
+            const cost = calcDist(curr, neigh) + costs[curr];
 
-            if (distances[neigh] === Number.MAX_VALUE) {
-                // we've never seen this node before
-                distances[neigh] = dist;
-                parents[neigh] = curr;
-                heap.push(neigh);
-            } else {
+            if (states[neigh] === NodeState.Open) {
                 // we've seen this node before, so we must check if this path to it was shorter
-                if (dist < distances[neigh]) {
-                    distances[neigh] = dist;
+                if (cost < costs[neigh]) {
+                    costs[neigh] = cost;
                     parents[neigh] = curr;
                     heap.swapUpward(heapIndexes[neigh]);
                 }
+            } else {
+                // we've never seen this node before
+                states[neigh] = NodeState.Open;
+                heuristics[neigh] = calcDist(neigh, goal);
+                costs[neigh] = cost;
+                parents[neigh] = curr;
+                heap.push(neigh);
             }
         }
     }

@@ -14,6 +14,7 @@ export {
 interface MapDrawer {
     corner: Vec2;
     cursorPos: Vec2;
+    pathOrigin: Vec2;
     canvasCoordToWorldTileCoord(canvasX: number, canvasY: number): Vec2;
     canvasCoordToScreenTileCoord(canvasX: number, canvasY: number): Vec2;
     canvasCoordForWorldTileCoord(x: number, y: number): Vec2;
@@ -25,6 +26,7 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
     const mapDrawer: MapDrawer = {
         corner: new Vec2(0, 0),
         cursorPos: undefined,
+        pathOrigin: undefined,
         canvasCoordToWorldTileCoord,
         canvasCoordToScreenTileCoord,
         canvasCoordForWorldTileCoord,
@@ -89,11 +91,17 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
             return;
         }
         
-        const path = map.calcPath(new Vec2(20, 20), mapDrawer.cursorPos);
-        if (path) {
-            for (let p of path) {
-                const i = p.y * width + p.x;
-                char[i] = '*'.charCodeAt(0);
+        if (mapDrawer.pathOrigin) {
+            const path = map.calcPath(mapDrawer.pathOrigin, mapDrawer.cursorPos);
+            if (path) {
+                for (let p of path) {
+                    const outX = p.x - mapDrawer.corner.x;
+                    const outY = p.y - mapDrawer.corner.y;
+                    if (outX >= 0 && outY >= 0 && outX < width && outY < height) {
+                        const i = outY * width + outX;
+                        char[i] = '*'.charCodeAt(0);
+                    }
+                }
             }
         }
         

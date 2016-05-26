@@ -45,6 +45,10 @@ export class Vec2 {
     dirVector(dir: Direction) {
         return [dirDX[dir], dirDY[dir]];
     }
+    
+    toString(): string {
+        return `Vec2(${this.x}, ${this.y})`;
+    }
 }
 
 
