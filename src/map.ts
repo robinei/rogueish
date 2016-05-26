@@ -1,6 +1,6 @@
 import { Vec2 } from './math';
 import { Direction, dirDX, dirDY } from './direction';
-import { calcPath as doCalcPath, makeNeighbourCalc } from './pathfind';
+import { findPath, makeGridNodeExpander } from './pathfind';
 import { shuffleArray } from './util';
 
 
@@ -63,7 +63,7 @@ interface UndoStack {
 function makeMap(width: number, height: number): Map {
     const cellCount = width * height;
     const flags = [0 as CellFlag];
-    const calcNeigh = makeNeighbourCalc(false, width, height, isWalkable);
+    const expandNode = makeGridNodeExpander(false, width, height, isWalkable);
     
     flags.length = cellCount;
     for (let i = 0; i < cellCount; ++i) {
@@ -173,7 +173,7 @@ function makeMap(width: number, height: number): Map {
         }
     }
     
-    function distanceCalc(a: number, b: number): number {
+    function calcDistance(a: number, b: number): number {
         const ax = a % width;
         const ay = Math.floor(a / width);
         
@@ -189,7 +189,7 @@ function makeMap(width: number, height: number): Map {
     function calcPath(start: Vec2, goal: Vec2): Vec2[] {
         const startIndex = start.y * width + start.x;
         const goalIndex = goal.y * width + goal.x;
-        const pathIndexes = doCalcPath(cellCount, startIndex, goalIndex, distanceCalc, calcNeigh);
+        const pathIndexes = findPath(cellCount, startIndex, goalIndex, calcDistance, expandNode);
         if (pathIndexes === undefined) {
             return undefined;
         }

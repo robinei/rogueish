@@ -1,10 +1,7 @@
 
-type Node = number;
-
-
 export {
-    calcPath,
-    makeNeighbourCalc,
+    findPath,
+    makeGridNodeExpander,
 }
 
 
@@ -86,6 +83,8 @@ class BinaryHeap<Value> {
 }
 
 
+// the algorithm always refers to a node by its index in the range [0, nodeCount)
+type Node = number;
 
 
 // construct a path from node "start" to node "curr",
@@ -111,12 +110,12 @@ enum NodeState {
 }
 
 
-function calcPath(
-    numNodes: number,
+function findPath(
+    nodeCount: number,
     start: Node,
     goal: Node,
-    calcDist: (a: Node, b: Node) => number,
-    calcNeigh: (node: Node, result: Node[]) => number
+    calcDistance: (a: Node, b: Node) => number,
+    expandNode: (node: Node, result: Node[]) => number
 ): Node[]
 {
     // setup the arrays
@@ -125,7 +124,7 @@ function calcPath(
     const costs = [Number.MAX_VALUE];
     const parents = [-1]; // from which node did we reach each node
     const heapIndexes = [-1]; // index of each node in the binary heap
-    for (let i = 1; i < numNodes; ++i) {
+    for (let i = 1; i < nodeCount; ++i) {
         states.push(NodeState.Virgin);
         heuristics.push(Number.MAX_VALUE);
         costs.push(Number.MAX_VALUE);
@@ -142,7 +141,7 @@ function calcPath(
 
     const neighbours = [0,0,0,0,0,0,0,0];
     states[start] = NodeState.Open;
-    heuristics[start] = calcDist(start, goal);
+    heuristics[start] = calcDistance(start, goal);
     costs[start] = 0;
     heap.push(start);
 
@@ -153,30 +152,30 @@ function calcPath(
         }
 
         states[curr] = NodeState.Closed;
-        const numNeigh = calcNeigh(curr, neighbours);
+        const count = expandNode(curr, neighbours);
 
-        for (let i = 0; i < numNeigh; ++i) {
-            const neigh = neighbours[i];
-            if (states[neigh] == NodeState.Closed) {
+        for (let i = 0; i < count; ++i) {
+            const next = neighbours[i];
+            if (states[next] == NodeState.Closed) {
                 continue;
             }
 
-            const cost = calcDist(curr, neigh) + costs[curr];
+            const cost = costs[curr] + calcDistance(curr, next);
 
-            if (states[neigh] === NodeState.Open) {
+            if (states[next] === NodeState.Open) {
                 // we've seen this node before, so we must check if this path to it was shorter
-                if (cost < costs[neigh]) {
-                    costs[neigh] = cost;
-                    parents[neigh] = curr;
-                    heap.swapUpward(heapIndexes[neigh]);
+                if (cost < costs[next]) {
+                    costs[next] = cost;
+                    parents[next] = curr;
+                    heap.swapUpward(heapIndexes[next]);
                 }
             } else {
-                // we've never seen this node before
-                states[neigh] = NodeState.Open;
-                heuristics[neigh] = calcDist(neigh, goal);
-                costs[neigh] = cost;
-                parents[neigh] = curr;
-                heap.push(neigh);
+                // state is NodeState.Virgin
+                states[next] = NodeState.Open;
+                heuristics[next] = calcDistance(next, goal);
+                costs[next] = cost;
+                parents[next] = curr;
+                heap.push(next);
             }
         }
     }
@@ -187,8 +186,8 @@ function calcPath(
 
 // create a function which calculates the neighbours of a given node, in a grid.
 // "node" is a 1D index into an array of size "width" x "height" representing the 2D grid
-function makeNeighbourCalc(eightDirections: boolean, width: number, height: number, isWalkable: (x: number, y: number) => boolean) {
-    // coordinate deltas for children in all 8 directions, starting north
+function makeGridNodeExpander(eightDirections: boolean, width: number, height: number, isWalkable: (x: number, y: number) => boolean) {
+    // coordinate deltas for children in all 8 or 4 directions, starting north going clockwise
     const diffX = eightDirections ? [ 0, 1, 1, 1, 0,-1,-1,-1] : [ 0,1,0,-1];
     const diffY = eightDirections ? [-1,-1, 0, 1, 1, 1, 0,-1] : [-1,0,1, 0];
 
@@ -199,13 +198,9 @@ function makeNeighbourCalc(eightDirections: boolean, width: number, height: numb
         for (let i = 0; i < diffX.length; ++i) {
             const x = nodeX + diffX[i];
             const y = nodeY + diffY[i];
-            if (x < 0 || y < 0 || x >= width || y >= height) {
-                continue;
+            if (x >= 0 && y >= 0 && x < width && y < height && isWalkable(x, y)) {
+                result[resultCount++] = y * width + x;
             }
-            if (!isWalkable(x, y)) {
-                continue;
-            }
-            result[resultCount++] = y * width + x;
         }
         return resultCount;
     };
