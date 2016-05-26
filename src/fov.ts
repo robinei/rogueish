@@ -26,8 +26,15 @@ function fieldOfView(
                 // Check for light hitting this cell.
                 const cellX = dr - i;
                 const cellY = i;
-                const arci = indexOfHittingArc(arcs, cellX, cellY);
-                if (arci < 0) {
+                
+                // Find index of Arc that hits the point, or continue if none do.
+                let arci = 0;
+                for (; arci < arcs.length; ++arci) {
+                    if (arcs[arci].hits(cellX, cellY)) {
+                        break;
+                    }
+                }
+                if (arci === arcs.length) {
                     continue; // unlit
                 }
 
@@ -42,7 +49,9 @@ function fieldOfView(
                 }
 
                 // Blocking cells cast shadows.
-                if (!shadeArcAtIndex(arcs, arci, cellX, cellY)) {
+                // Shade the arc with this point, replace it with new arcs (or none).
+                arcs.splice(arci, 1, ...arcs[arci].shade(cellX, cellY));
+                if (arcs.length === 0) {
                     return; // no more light
                 }
             }
@@ -53,24 +62,6 @@ function fieldOfView(
     quadrant(+1, +1, ox, -1);
     quadrant(-1, -1, -1, oy);
     quadrant(+1, -1, ox, oy);
-}
-
-
-/** Return index of Arc that hits the point, or -1 if none do. */
-function indexOfHittingArc(arcs: Arc[], x: number, y: number): number {
-    for (let i = 0; i < arcs.length; ++i) {
-        if (arcs[i].hits(x, y)) {
-            return i;
-        }
-    }
-    return -1;
-}
-
-
-/** Shade the arc with this point, replace it with new arcs (or none). */
-function shadeArcAtIndex(arcs: Arc[], arci: number, x: number, y: number): boolean {
-    arcs.splice(arci, 1, ...arcs[arci].shade(x, y));
-    return arcs.length > 0;
 }
 
 
