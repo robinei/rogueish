@@ -67,16 +67,7 @@ function fieldOfView(
 
 /** Helper methods for lines. */
 class Ln {
-    x0: number;
-    y0: number;
-    x1: number;
-    y1: number;
-    constructor(x0: number, y0: number, x1: number, y1: number) {
-        this.x0 = x0;
-        this.y0 = y0;
-        this.x1 = x1;
-        this.y1 = y1;
-    }
+    constructor(public x0: number, public y0: number, public x1: number, public y1: number) { }
     copy(): Ln { return new Ln(this.x0, this.y0, this.x1, this.y1); }
     cw(x: number, y: number): boolean { return this.dtheta(x, y) > 0; }
     ccw(x: number, y: number): boolean { return this.dtheta(x, y) < 0; }
@@ -92,18 +83,12 @@ class Ln {
 
 /** Helper methods for arcs. */
 class Arc {
-    steep: Ln;
-    shallow: Ln;
-
     steepBumpsX: number[] = [];
     steepBumpsY: number[] = [];
     shallowBumpsX: number[] = [];
     shallowBumpsY: number[] = [];
 
-    constructor(steep: Ln, shallow: Ln) {
-        this.steep = steep;
-        this.shallow = shallow;
-    }
+    constructor(public steep: Ln, public shallow: Ln) { }
 
     copy(): Arc {
         const c = new Arc(this.steep.copy(), this.shallow.copy());

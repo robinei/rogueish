@@ -2,13 +2,7 @@ import { Direction, dirDX, dirDY } from "./direction";
 
 
 export class Vec2 {
-    x: number;
-    y: number;
-
-    constructor(x: number, y: number) {
-        this.x = x;
-        this.y = y;
-    }
+    constructor(public x: number, public y: number) { }
 
     equals(p: Vec2): boolean {
         if (!p) {
@@ -53,17 +47,7 @@ export class Vec2 {
 
 
 export class Rect {
-    x: number = 0;
-    y: number = 0;
-    width: number = 0;
-    height: number = 0;
-
-    constructor(x: number, y: number, width: number, height: number) {
-        this.x = x;
-        this.y = y;
-        this.width = width;
-        this.height = height;
-    }
+    constructor(public x: number, public y: number, public width: number, public height: number) { }
 
     x1(): number {
         return this.x + this.width;

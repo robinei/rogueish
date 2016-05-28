@@ -1,7 +1,7 @@
 import { Map, CellFlag } from "./map";
 import { Display, CHAR_DIM } from "./display";
 import { Vec2 } from "./math";
-import { colors, scaleColor, blendColors } from "./color";
+import { colors, makeColor, scaleColor, blendColors } from "./color";
 import { fieldOfView } from "./fov";
 
 
@@ -62,7 +62,7 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
 
                 // if ((flags & CellFlag.Discovered) === 0) { continue; }
 
-                let charCode = ".".charCodeAt(0);
+                let charCode = 250; // centered dot
                 let bgColor = colors.black;
                 let fgColor = colors.white;
                 if ((flags & CellFlag.Walkable) === 0) {
@@ -71,13 +71,14 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
                         fgColor = colors.yellow;
                         bgColor = colors.gray;
                     } else {
-                        charCode = "?".charCodeAt(0);
+                        charCode = 247;
+                        fgColor = makeColor(64, 64, 64);
                     }
                 }
 
                 if ((flags & CellFlag.Visible) === 0) {
-                    fgColor = scaleColor(fgColor, 0.5);
-                    bgColor = scaleColor(bgColor, 0.5);
+                    fgColor = scaleColor(fgColor, 0.25);
+                    bgColor = scaleColor(bgColor, 0.25);
                 }
 
                 const i = y * width + x;
@@ -106,8 +107,8 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
         }
 
         fieldOfView(
-            mapDrawer.cursorPos.x,
-            mapDrawer.cursorPos.y, 13, (x, y) => {
+            mapDrawer.cursorPos.x, mapDrawer.cursorPos.y, 13,
+            (x, y) => {
                 if (!map.isWalkable(x, y)) {
                     return;
                 }
@@ -130,7 +131,7 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
         const cursorY = mapDrawer.cursorPos.y - mapDrawer.corner.y;
         if (cursorX >= 0 && cursorY >= 0 && cursorX < width && cursorY < height) {
             const i = cursorY * width + cursorX;
-            char[i] = "@".charCodeAt(0);
+            char[i] = 1;
             fg[i] = colors.white;
         }
     }
