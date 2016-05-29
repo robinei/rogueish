@@ -12,7 +12,7 @@ cat >> build/temp.js << EOF
 require("index");
 EOF
 
-java -jar compiler.jar --js build/temp.js --js_output_file build/bundle.js
+java -jar compiler.jar --compilation_level ADVANCED_OPTIMIZATIONS --js build/temp.js --js_output_file build/bundle.js
 rm build/temp.js
 
 cp font.png build/
