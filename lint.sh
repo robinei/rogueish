@@ -1,2 +1,2 @@
 #!/bin/sh
-find . -name "*.ts" | xargs tslint -t verbose
+find src/ -name "*.ts" | xargs tslint -t verbose

@@ -4,6 +4,7 @@ import { CHAR_DIM, makeDisplay } from "./display";
 import { fieldOfView } from "./fov";
 import { Vec2, Rect } from "./math";
 import { generateMaze } from "./mapgen/maze";
+import { generateCave } from "./mapgen/cave";
 
 
 interface PrefabCellSpec {
@@ -228,7 +229,7 @@ const map = makeMap(100, 80);
 /*const generator = makeDungeonGenerator(map, prefabs);
 generator.generate();
 
-applyPrefab(prefab0, map, 1, 1, []);*/
+applyPrefab(prefab0, map, 1, 1, []);
 map.forNeighbours(20, 20, 10, (x, y) => {
     map.setFlag(x, y, CellFlag.Walkable);
     return true;
@@ -238,8 +239,8 @@ map.forNeighbours(40, 20, 10, (x, y) => {
     return true;
 });
 map.clearFlag(30, 19, CellFlag.Walkable);
-map.clearFlag(30, 20, CellFlag.Walkable);
-generateMaze(map);
+map.clearFlag(30, 20, CellFlag.Walkable);*/
+generateCave(map);
 
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;

@@ -3,6 +3,7 @@ import { Display, CHAR_DIM } from "./display";
 import { Vec2 } from "./math";
 import { colors, makeColor, scaleColor, blendColors } from "./color";
 import { fieldOfView } from "./fov";
+import { floodFill } from "./util";
 
 
 export {
@@ -72,7 +73,7 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
                         bgColor = colors.gray;
                     } else {
                         charCode = 247;
-                        fgColor = makeColor(64, 64, 64);
+                        fgColor = colors.gray;
                     }
                 }
 
@@ -106,6 +107,31 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
             }
         }
 
+        const cursorX = mapDrawer.cursorPos.x - mapDrawer.corner.x;
+        const cursorY = mapDrawer.cursorPos.y - mapDrawer.corner.y;
+        if (cursorX >= 0 && cursorY >= 0 && cursorX < width && cursorY < height) {
+            const i = cursorY * width + cursorX;
+            char[i] = 1;
+            fg[i] = colors.white;
+
+            const floodColor = makeColor(16, 16, 16);
+            const visited = [false];
+            visited.length = map.width * map.height;
+            floodFill(
+                mapDrawer.cursorPos.x, mapDrawer.cursorPos.y,
+                map.width, map.height,
+                (x, y) => map.isWalkable(x, y) && !visited[y * map.width + x],
+                (x, y) => {
+                    visited[y * map.width + x] = true;
+                    const outX = x - mapDrawer.corner.x;
+                    const outY = y - mapDrawer.corner.y;
+                    if (outX >= 0 && outY >= 0 && outX < width && outY < height) {
+                        bg[outY * width + outX] = floodColor;
+                    }
+                }
+            );
+        }
+
         fieldOfView(
             mapDrawer.cursorPos.x, mapDrawer.cursorPos.y, 13,
             (x, y) => {
@@ -115,25 +141,18 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
                 const dx = x - mapDrawer.cursorPos.x;
                 const dy = y - mapDrawer.cursorPos.y;
                 const d = Math.min(10, Math.sqrt(dx * dx + dy * dy));
-                const t = 1 - (d / 10);
+                const t = (1 - (d / 10)) * 0.5;
                 const outX = x - mapDrawer.corner.x;
                 const outY = y - mapDrawer.corner.y;
+                const color = makeColor(0xFF, 0xBF, 0x00);
                 if (outX >= 0 && outY >= 0 && outX < width && outY < height) {
                     const i = outY * width + outX;
-                    fg[i] = blendColors(fg[i], colors.red, t);
-                    bg[i] = blendColors(bg[i], colors.red, t);
+                    fg[i] = blendColors(fg[i], color, t);
+                    bg[i] = blendColors(bg[i], color, t);
                 }
             },
             (x, y) => !map.isWalkable(x, y)
         );
-
-        const cursorX = mapDrawer.cursorPos.x - mapDrawer.corner.x;
-        const cursorY = mapDrawer.cursorPos.y - mapDrawer.corner.y;
-        if (cursorX >= 0 && cursorY >= 0 && cursorX < width && cursorY < height) {
-            const i = cursorY * width + cursorX;
-            char[i] = 1;
-            fg[i] = colors.white;
-        }
     }
 
     return mapDrawer;
