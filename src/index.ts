@@ -226,28 +226,25 @@ const prefabs: PrefabEntry[] = [
 
 
 
-const map = makeMap(100, 80);
-/*const generator = makeDungeonGenerator(map, prefabs);
-generator.generate();
-
-applyPrefab(prefab0, map, 1, 1, []);
-map.forNeighbours(20, 20, 10, (x, y) => {
-    map.setFlag(x, y, CellFlag.Walkable);
-    return true;
-});
-map.forNeighbours(40, 20, 10, (x, y) => {
-    map.setFlag(x, y, CellFlag.Walkable);
-    return true;
-});
-map.clearFlag(30, 19, CellFlag.Walkable);
-map.clearFlag(30, 20, CellFlag.Walkable);*/
-generateCave(map);
-
-
+const map = makeMap(200, 110);
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const display = makeDisplay(canvas, runApp, onDraw);
 const mapDrawer = makeMapDrawer(map, display);
-mapDrawer.pathOrigin = map.randomWalkablePos();
+
+regenerateMap();
+
+
+function regenerateMap() {
+    const { width, height, flags } = map;
+    for (let i = 0; i < width * height; ++i) {
+        flags[i] = 0;
+    }
+
+    generateCave(map);
+
+    mapDrawer.pathOrigin = map.randomWalkablePos();
+}
+
 
 
 function onDraw() {
@@ -286,7 +283,8 @@ function onKeyDown(e: KeyboardEvent) {
         ++mapDrawer.corner.x;
     } else if (e.keyCode === 40) { // down
         ++mapDrawer.corner.y;
-    } else if (e.keyCode === 32) { // space
+    } else if (e.keyCode === "r".charCodeAt(0) || e.keyCode === "R".charCodeAt(0)) {
+        regenerateMap();
     }
     display.redraw();
 }

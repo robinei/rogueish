@@ -3,6 +3,7 @@
 import { Map, CellFlag } from "../map";
 import { stdGen } from "../mtrand";
 import { floodFill } from "../util";
+import { Vec2 } from "../math";
 
 export {
     generateCave,
@@ -17,9 +18,11 @@ function generateCave(map: Map): void {
     let walls = [false];
     let nextWalls = [false];
     let reachable = [false];
+    let cellRules = [0];
     walls.length = cellCount;
     nextWalls.length = cellCount;
     reachable.length = cellCount;
+    cellRules.length = cellCount;
 
     // Just write walls to both entire arrays, so that borders in particular will be considered walls.
     // Border cells will not be rewritten later.
@@ -63,21 +66,69 @@ function generateCave(map: Map): void {
     function doGenerate() {
         for (let y = 1; y < height - 1; ++y) {
             for (let x = 1; x < width - 1; ++x) {
-                walls[y * width + x] = stdGen.rnd() < 0.6;
+                walls[y * width + x] = stdGen.rnd() < 0.58;
             }
         }
 
+        const fourFiveRule: IterRule = (x, y) => {
+            const wall = isWall(x, y);
+            const count = adjacentWallCount(x, y, 1);
+            return (wall && count >= 4) || (!wall && count >= 5);
+        };
+        const rule1: IterRule = (x, y) => adjacentWallCount(x, y, 1) >= 5 || adjacentWallCount(x, y, 2) <= 2;
+        const rule2: IterRule = (x, y) => adjacentWallCount(x, y, 1) >= 5 || adjacentWallCount(x, y, 2) <= 1;
+        const rule3: IterRule = (x, y) => adjacentWallCount(x, y, 1) >= 5 || adjacentWallCount(x, y, 2) == 0;
+        const rule4: IterRule = (x, y) => adjacentWallCount(x, y, 1) >= 5;
+
         const rules: IterRule[] = [
-            (x, y) => adjacentWallCount(x, y, 1) >= 5 || adjacentWallCount(x, y, 2) <= 2,
-            (x, y) => adjacentWallCount(x, y, 1) >= 5,
+            fourFiveRule,
+            fourFiveRule,
+            rule1,
+            rule1,
+            rule2,
+            rule3,
+            rule4,
+            rule4,
+            rule4,
         ];
 
-        const metaiters = stdGen.intRange(2, 5);
-        for (let j = 0; j < metaiters; ++j) {
-            const iters = stdGen.intRange(2, 5);
-            for (let i = 0; i < iters; ++i) {
-                const ruleIndex = stdGen.intRange(0, 2);
-                iterate(rules[ruleIndex]);
+        let pointsX = [0];
+        let pointsY = [0];
+        let pointRules = [0];
+        function ruleAtPos(x: number, y: number): number {
+            let ruleIndex = 0;
+            let dist = Number.MAX_VALUE;
+            for (let i = 0; i < pointsX.length; ++i) {
+                const dx = x - pointsX[i];
+                const dy = y - pointsY[i];
+                const d = dx * dx + dy * dy;
+                if (d < dist) {
+                    dist = d;
+                    ruleIndex = pointRules[i];
+                }
+            }
+            return ruleIndex;
+        };
+
+        const superRule: IterRule = (x, y) => rules[cellRules[y * width + x]](x, y);
+
+        const iters = stdGen.intRange(1, 4);
+        for (let i = 0; i < iters; ++i) {
+            for (let r = 0; r < 3; ++r) {
+                pointsX[r] = stdGen.intRange(0, width);
+                pointsY[r] = stdGen.intRange(0, height);
+                pointRules[r] = stdGen.intRange(0, rules.length);
+            }
+
+            for (let y = 1; y < height - 1; ++y) {
+                for (let x = 1; x < width - 1; ++x) {
+                    cellRules[y * width + x] = ruleAtPos(x, y);
+                }
+            }
+
+            const ruleiters = stdGen.intRange(1, 5);
+            for (let j = 0; j < ruleiters; ++j) {
+                iterate(superRule);
             }
         }
     }

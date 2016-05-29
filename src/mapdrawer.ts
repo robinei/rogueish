@@ -114,7 +114,7 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
             char[i] = 1;
             fg[i] = colors.white;
 
-            const floodColor = makeColor(16, 16, 16);
+            /*const floodColor = makeColor(16, 16, 16);
             const visited = [false];
             visited.length = map.width * map.height;
             floodFill(
@@ -129,7 +129,7 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
                         bg[outY * width + outX] = floodColor;
                     }
                 }
-            );
+            );*/
         }
 
         fieldOfView(

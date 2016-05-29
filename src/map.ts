@@ -52,6 +52,7 @@ interface Map {
     forNeighboursUnbiased(originX: number, originY: number, radius: number, func: (cellX: number, cellY: number) => boolean): void;
 
     calcPath(start: Vec2, goal: Vec2): Vec2[];
+    randomPos(): Vec2;
     randomWalkablePos(): Vec2;
 }
 
@@ -239,6 +240,12 @@ function makeMap(width: number, height: number): Map {
         return path;
     }
 
+    function randomPos(): Vec2 {
+        const x = Math.floor(width * stdGen.rnd());
+        const y = Math.floor(height * stdGen.rnd());
+        return new Vec2(x, y);
+    }
+
     function randomWalkablePos(): Vec2 {
         for (let tries = 0; tries < 1000; ++tries) {
             const x = Math.floor(width * stdGen.rnd());
@@ -267,6 +274,7 @@ function makeMap(width: number, height: number): Map {
         forNeighbours,
         forNeighboursUnbiased,
         calcPath,
+        randomPos,
         randomWalkablePos,
     };
 }
