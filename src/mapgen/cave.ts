@@ -8,6 +8,7 @@ export {
     generateCave,
 }
 
+type IterRule = (x: number, y: number) => boolean;
 
 function generateCave(map: Map): void {
     const { width, height, flags } = map;
@@ -20,6 +21,13 @@ function generateCave(map: Map): void {
     nextWalls.length = cellCount;
     reachable.length = cellCount;
 
+    // Just write walls to both entire arrays, so that borders in particular will be considered walls.
+    // Border cells will not be rewritten later.
+    for (let i = 0; i < cellCount; ++i) {
+        walls[i] = true;
+        nextWalls[i] = true;
+    }
+
     while (true) {
         doGenerate();
 
@@ -27,15 +35,19 @@ function generateCave(map: Map): void {
             reachable[i] = false;
         }
         const reachableCount = fillReachable();
-        if (reachableCount / cellCount < 0.3) {
+        // Regenerate if we didn't find a connected cave covering a big enough fraction of total cells.
+        if (reachableCount / cellCount < 0.2) {
             continue;
         }
+        // Now mark everything not reachable as walls.
+        // This will eliminate caves disjoint from the one we found.
         for (let i = 0; i < cellCount; ++i) {
             walls[i] = !reachable[i];
         }
-        break;
+        break; // Done!
     }
 
+    // Finally apply the generated cave to the actual map.
     for (let i = 0; i < cellCount; ++i) {
         if (!walls[i]) {
             flags[i] = CellFlag.Walkable;
@@ -43,37 +55,46 @@ function generateCave(map: Map): void {
     }
 
 
+    /**
+     * Randomly generate every non-border cell,
+     * then repeatedly evaluate different rule functions for nice organic cave-like structures.
+     * The is will probably result in several disjoint areas.
+     */
     function doGenerate() {
-        for (let i = 0; i < cellCount; ++i) {
-            walls[i] = stdGen.rnd() < 0.6;
+        for (let y = 1; y < height - 1; ++y) {
+            for (let x = 1; x < width - 1; ++x) {
+                walls[y * width + x] = stdGen.rnd() < 0.6;
+            }
         }
-        for (let i = 0; i < 3; ++i) {
-            iterate((x, y) => adjacentWallCount(x, y, 1) >= 5 || adjacentWallCount(x, y, 2) <= 2);
-        }
-        for (let i = 0; i < 2; ++i) {
-            iterate((x, y) => adjacentWallCount(x, y, 1) >= 5);
+
+        const rules: IterRule[] = [
+            (x, y) => adjacentWallCount(x, y, 1) >= 5 || adjacentWallCount(x, y, 2) <= 2,
+            (x, y) => adjacentWallCount(x, y, 1) >= 5,
+        ];
+
+        const metaiters = stdGen.intRange(2, 5);
+        for (let j = 0; j < metaiters; ++j) {
+            const iters = stdGen.intRange(2, 5);
+            for (let i = 0; i < iters; ++i) {
+                const ruleIndex = stdGen.intRange(0, 2);
+                iterate(rules[ruleIndex]);
+            }
         }
     }
 
-    function iterate(rule: (x: number, y: number) => boolean): void {
+    /** Evaluate the rule function at for every non-border cell. */
+    function iterate(rule: IterRule): void {
         for (let y = 1; y < height - 1; ++y) {
             for (let x = 1; x < width - 1; ++x) {
                 nextWalls[y * width + x] = rule(x, y);
             }
-        }
-        for (let x = 0; x < width; ++x) {
-            nextWalls[x] = true;
-            nextWalls[(height - 1) * width + x] = true;
-        }
-        for (let y = 0; y < height; ++y) {
-            nextWalls[y * width] = true;
-            nextWalls[y * width + width - 1] = true;
         }
         const temp = walls;
         walls = nextWalls;
         nextWalls = temp;
     }
 
+    /** Number of walls in square of giver radius around origin (not counting origin). */
     function adjacentWallCount(x: number, y: number, r: number = 1): number {
         let count = 0;
         for (let dy = -r; dy <= r; ++dy) {
@@ -89,14 +110,23 @@ function generateCave(map: Map): void {
         return count;
     }
 
+    /**
+     * Is the cell at the given coordinate a wall?
+     * All points outside of, and at the border of the map are considered walls.
+     */
     function isWall(x: number, y: number): boolean {
         if (x <= 0 || y <= 0 || x >= width - 1 || y >= height - 1) {
-            // points outside of, and at the border of the map are considered walls
             return true;
         }
         return walls[y * width + x];
     }
 
+    /**
+     * Pick a random non-wall cell on the map, and flood fill every non-wall cell
+     * reachable by 4-direction walk from there, marking them all as reachable.
+     * Chances are that the cell we pick will be in the largest connected cave.
+     * @returns {number} Number of reachable cells.
+     */
     function fillReachable(): number {
         let foundStart = false;
         let startX = 0;
