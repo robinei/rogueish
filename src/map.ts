@@ -2,6 +2,7 @@ import { Vec2 } from "./math";
 import { dirDX, dirDY } from "./direction";
 import { findPath, makeGridNodeExpander } from "./pathfind";
 import { shuffleArray } from "./util";
+import { stdGen } from "./mtrand";
 
 
 export {
@@ -51,6 +52,7 @@ interface Map {
     forNeighboursUnbiased(originX: number, originY: number, radius: number, func: (cellX: number, cellY: number) => boolean): void;
 
     calcPath(start: Vec2, goal: Vec2): Vec2[];
+    randomWalkablePos(): Vec2;
 }
 
 interface UndoContext {
@@ -237,6 +239,16 @@ function makeMap(width: number, height: number): Map {
         return path;
     }
 
+    function randomWalkablePos(): Vec2 {
+        for (let tries = 0; tries < 1000; ++tries) {
+            const x = Math.floor(width * stdGen.rnd());
+            const y = Math.floor(height * stdGen.rnd());
+            if (isWalkable(x, y)) {
+                return new Vec2(x, y);
+            }
+        }
+        return undefined;
+    }
 
     return {
         width,
@@ -255,6 +267,7 @@ function makeMap(width: number, height: number): Map {
         forNeighbours,
         forNeighboursUnbiased,
         calcPath,
+        randomWalkablePos,
     };
 }
 

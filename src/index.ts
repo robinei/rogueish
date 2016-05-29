@@ -3,6 +3,7 @@ import { makeMapDrawer } from "./mapdrawer";
 import { CHAR_DIM, makeDisplay } from "./display";
 import { fieldOfView } from "./fov";
 import { Vec2, Rect } from "./math";
+import { stdGen } from "./mtrand";
 import { generateMaze } from "./mapgen/maze";
 import { generateCave } from "./mapgen/cave";
 
@@ -114,7 +115,7 @@ function makeDungeonGenerator(map: Map, prefabs: PrefabEntry[]) {
     const addedRooms: AddedRoom[] = [];
 
     function randomPrefab(): Prefab {
-        const threshold = Math.random();
+        const threshold = stdGen.rnd();
         for (let i = 0; i < prefabs.length; ++i) {
             if (prefabs[i].priority >= threshold) {
                 return prefabs[i].prefab;
@@ -136,7 +137,7 @@ function makeDungeonGenerator(map: Map, prefabs: PrefabEntry[]) {
             y = Math.floor((map.height - prefab.height) / 2);
         } else {
             for (let tries = 0; tries < 10; ++tries) {
-                const room = addedRooms[Math.floor(Math.random() * addedRooms.length)];
+                const room = addedRooms[Math.floor(stdGen.rnd() * addedRooms.length)];
                 for (const p of room.prefab.entrances) {
                     const used = room.usedEntrances.some(q => p.equals(q));
                     if (used) {
@@ -149,7 +150,7 @@ function makeDungeonGenerator(map: Map, prefabs: PrefabEntry[]) {
     }
 
     function generate() {
-        const targetRoomCount = Math.floor(Math.random() * 10) + 3;
+        const targetRoomCount = Math.floor(stdGen.rnd() * 10) + 3;
         let roomCount = 0;
         while (roomCount < targetRoomCount) {
             let succeeded = false;
@@ -246,7 +247,7 @@ generateCave(map);
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const display = makeDisplay(canvas, runApp, onDraw);
 const mapDrawer = makeMapDrawer(map, display);
-mapDrawer.pathOrigin = new Vec2(20, 20);
+mapDrawer.pathOrigin = map.randomWalkablePos();
 
 
 function onDraw() {

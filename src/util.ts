@@ -1,3 +1,4 @@
+import { stdGen } from "./mtrand";
 
 export function getObjectName(object: any): string {
     const funcNameRegex = /function (.{1,})\(/;
@@ -40,7 +41,7 @@ export function shuffleArray<T>(array: T[], count?: number): void {
     // While there remain elements to shuffle...
     while (0 !== currentIndex) {
         // Pick a remaining element...
-        randomIndex = Math.floor(Math.random() * currentIndex);
+        randomIndex = Math.floor(stdGen.rnd() * currentIndex);
         currentIndex -= 1;
 
         // And swap it with the current element.
