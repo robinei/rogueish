@@ -104,7 +104,7 @@ function constructPath(start: Node, curr: Node, parents: Node[]): Node[] {
 }
 
 
-enum NodeState {
+const enum NodeState {
     Virgin,
     Open,
     Closed,

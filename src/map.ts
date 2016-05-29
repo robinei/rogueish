@@ -18,7 +18,7 @@ export {
 }
 
 
-enum CellFlag {
+const enum CellFlag {
     Walkable = 1,
     Visible = 2,
     Discovered = 4,

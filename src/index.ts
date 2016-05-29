@@ -11,7 +11,7 @@ interface PrefabCellSpec {
     wantEntrance: boolean;
 }
 
-enum PrefabCellFlag {
+const enum PrefabCellFlag {
     IsEntrance
 }
 
