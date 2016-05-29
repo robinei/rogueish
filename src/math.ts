@@ -17,9 +17,9 @@ export class Vec2 {
         return Math.sqrt(dx * dx + dy * dy);
     }
 
-    direction(): Direction {
-        const dx = sigNum(this.x);
-        const dy = sigNum(this.y);
+    get direction(): Direction {
+        const dx = signum(this.x);
+        const dy = signum(this.y);
         for (let i = 0; i < 8; ++i) {
             if (dirDX[i] === dx && dirDY[i] === dy) {
                 return i;
@@ -36,10 +36,6 @@ export class Vec2 {
         return new Vec2(this.x + p.x, this.y + p.y);
     }
 
-    dirVector(dir: Direction) {
-        return [dirDX[dir], dirDY[dir]];
-    }
-
     toString(): string {
         return `Vec2(${this.x}, ${this.y})`;
     }
@@ -49,34 +45,28 @@ export class Vec2 {
 export class Rect {
     constructor(public x: number, public y: number, public width: number, public height: number) { }
 
-    x1(): number {
+    get x1(): number {
         return this.x + this.width;
     }
-    y1(): number {
+    get y1(): number {
         return this.y + this.height;
     }
 
-    getPosition(): Vec2 {
+    get pos(): Vec2 {
         return new Vec2(this.x, this.y);
     }
 
     intersects(r: Rect): boolean {
-        return !(r.x > this.x1() ||
-                    r.x1() < this.x ||
-                    r.y > this.y1() ||
-                    r.y1() < this.y);
+        return !(r.x > this.x1 ||
+                 r.x1 < this.x ||
+                 r.y > this.y1 ||
+                 r.y1 < this.y);
     }
 }
 
 
-export function sigNum(num: number): number {
-    if (num < 0) {
-        return -1;
-    }
-    if (num > 0) {
-        return 1;
-    }
-    return 0;
+export function signum(num: number): number {
+    return num ? num < 0 ? -1 : 1 : 0;
 }
 
 

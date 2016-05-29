@@ -1,8 +1,8 @@
-import { CellFlag, Map, makeMap } from "./map";
+import { CellFlag, MapCell, Map, makeMap } from "./map";
 import { makeMapDrawer } from "./mapdrawer";
 import { CHAR_DIM, makeDisplay } from "./display";
 import { fieldOfView } from "./fov";
-import { Vec2 } from "./math";
+import { Vec2, Rect } from "./math";
 
 
 interface PrefabCellSpec {
@@ -10,23 +10,28 @@ interface PrefabCellSpec {
     wantEntrance: boolean;
 }
 
-interface PrefabConf {
-    isEntrance(char: string): boolean;
-    applyCell(map: Map, x: number, y: number, spec: PrefabCellSpec): void;
+enum PrefabCellFlag {
+    IsEntrance
 }
 
+interface PrefabConf {
+    getFlags(char: string): PrefabCellFlag;
+    getCell(spec: PrefabCellSpec): MapCell;
+}
+
+
+
 interface Prefab {
-    conf: PrefabConf;
-    rows: string[];
     width: number;
     height: number;
+    rows: string[];
+    flags: PrefabCellFlag[];
     entrances: Vec2[];
+    conf: PrefabConf;
 }
 
 function makePrefab(conf: PrefabConf, rows: string[]): Prefab {
     rows = Object.freeze(rows);
-
-    const entrances: Vec2[] = [];
 
     const height = rows.length;
     if (height === 0) {
@@ -38,36 +43,73 @@ function makePrefab(conf: PrefabConf, rows: string[]): Prefab {
         throw new Error("expected 1 or more characters in row");
     }
 
-    // find the entrances
+    const entrances: Vec2[] = [];
+    const flags = [0 as PrefabCellFlag];
+    flags.length = width * height;
+
     for (let y = 0; y < height; ++y) {
         if (rows[y].length !== width) {
             throw new Error("expected all rows to be of length: " + width);
         }
         for (let x = 0; x < width; ++x) {
-            if (conf.isEntrance(rows[y][x])) {
+            const i = y * width + x;
+            flags[i] = conf.getFlags(rows[y][x]);
+            if ((flags[i] & PrefabCellFlag.IsEntrance) !== 0) {
                 entrances.push(new Vec2(x, y));
             }
         }
     }
 
     return {
-        conf,
-        rows,
         width,
         height,
+        rows,
+        flags,
         entrances,
+        conf,
     };
 }
 
+function applyPrefab(prefab: Prefab, map: Map, ox: number, oy: number, usedEntrances: Vec2[]) {
+    const spec: PrefabCellSpec = {
+        wantEntrance: false,
+        char: "",
+    };
+    const { width, height, rows, flags, conf } = prefab;
+    for (let y = 0; y < height; ++y) {
+        for (let x = 0; x < width; ++x) {
+            spec.char = rows[y][x];
+            spec.wantEntrance = false;
+            if ((flags[y * width + x] & PrefabCellFlag.IsEntrance) !== 0) {
+                for (let i = 0; i < usedEntrances.length; ++i) {
+                    const p = usedEntrances[i];
+                    if (x === p.x && y === p.y) {
+                        spec.wantEntrance = true;
+                        break;
+                    }
+                }
+            }
+            const cell = conf.getCell(spec);
+            map.setCell(ox + x, oy + y, cell);
+        }
+    }
+}
 
 interface PrefabEntry {
     priority: number;
     prefab: Prefab;
 }
 
+interface AddedRoom {
+    rect: Rect;
+    prefab: Prefab;
+    usedEntrances: Vec2[];
+}
 
 function makeDungeonGenerator(map: Map, prefabs: PrefabEntry[]) {
     prefabs.sort((a, b) => a.priority - b.priority);
+
+    const addedRooms: AddedRoom[] = [];
 
     function randomPrefab(): Prefab {
         const threshold = Math.random();
@@ -83,6 +125,23 @@ function makeDungeonGenerator(map: Map, prefabs: PrefabEntry[]) {
         const prefab = randomPrefab();
         if (!prefab) {
             return false;
+        }
+        let x: number = 0;
+        let y: number = 0;
+        if (addedRooms.length === 0) {
+            // place first room in the middle of the map
+            x = Math.floor((map.width - prefab.width) / 2);
+            y = Math.floor((map.height - prefab.height) / 2);
+        } else {
+            for (let tries = 0; tries < 10; ++tries) {
+                const room = addedRooms[Math.floor(Math.random() * addedRooms.length)];
+                for (const p of room.prefab.entrances) {
+                    const used = room.usedEntrances.some(q => p.equals(q));
+                    if (used) {
+                        continue;
+                    }
+                }
+            }
         }
         return false;
     }
@@ -114,24 +173,27 @@ function makeDungeonGenerator(map: Map, prefabs: PrefabEntry[]) {
 
 
 const prefabConf: PrefabConf = {
-    isEntrance: char => char === "e",
-    applyCell: (map, x, y, spec) => {
+    getFlags: char => {
+        switch (char) {
+        case "e":
+            return PrefabCellFlag.IsEntrance;
+        default:
+            return 0;
+        }
+    },
+    getCell: spec => {
         switch (spec.char) {
         case ".":
-            map.setFlags(x, y, CellFlag.Walkable);
-            break;
+            return { flags: CellFlag.Walkable };
         case "e":
             if (spec.wantEntrance) {
-                map.setFlags(x, y, CellFlag.Walkable);
-            } else {
-                map.setFlags(x, y, 0);
+                return { flags: CellFlag.Walkable };
             }
-            break;
+            return { flags: 0 };
         case "#":
-            map.setFlags(x, y, 0);
-            break;
+            return { flags: 0 };
         default:
-            break;
+            return { flags: 0 };
         }
     },
 };
@@ -140,15 +202,15 @@ const prefab0 = makePrefab(
     prefabConf,
     [
         "  ###e###  ",
-        " ##.....## ",
-        "##.......##",
+        "  #.....#  ",
+        "###.....###",
         "#.........#",
-        "#....#....#",
+        "#...###...#",
         "e...###...e",
-        "#....#....#",
+        "#...###...#",
         "#.........#",
-        "##.......##",
-        " ##.....## ",
+        "###.....###",
+        "  #.....#  ",
         "  ###e###  ",
     ]
 );
@@ -158,18 +220,6 @@ const prefabs: PrefabEntry[] = [
 ];
 
 
-function applyPrefab(prefab: Prefab, map: Map, ox: number, oy: number) {
-    const spec: PrefabCellSpec = {
-        wantEntrance: false,
-        char: "",
-    };
-    for (let y = 0; y < prefab.height; ++y) {
-        for (let x = 0; x < prefab.width; ++x) {
-            spec.char = prefab.rows[y][x];
-            prefab.conf.applyCell(map, ox + x, oy + y, spec);
-        }
-    }
-}
 
 
 
@@ -177,7 +227,7 @@ const map = makeMap(100, 80);
 const generator = makeDungeonGenerator(map, prefabs);
 generator.generate();
 
-applyPrefab(prefab0, map, 1, 1);
+applyPrefab(prefab0, map, 1, 1, []);
 map.forNeighbours(20, 20, 10, (x, y) => {
     map.setFlag(x, y, CellFlag.Walkable);
     return true;

@@ -18,7 +18,7 @@ class BinaryHeap<Value> {
         this.setIndex = setIndex || function () { };
     }
 
-    getCount() {
+    get count() {
         return this.heap.length;
     }
 
@@ -145,7 +145,7 @@ function findPath(
     costs[start] = 0;
     heap.push(start);
 
-    while (heap.getCount() > 0) {
+    while (heap.count > 0) {
         const curr = heap.pop();
         if (curr === goal) {
             return constructPath(start, curr, parents);

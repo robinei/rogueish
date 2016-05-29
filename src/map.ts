@@ -6,6 +6,7 @@ import { shuffleArray } from "./util";
 
 export {
     CellFlag,
+    MapCell,
 
     Map,
     makeMap,
@@ -23,11 +24,17 @@ enum CellFlag {
     Discovered = 4,
 }
 
+interface MapCell {
+    flags: CellFlag;
+}
 
 interface Map {
     width: number;
     height: number;
     flags: CellFlag[];
+
+    getCell(x: number, y: number): MapCell;
+    setCell(x: number, y: number, cell: MapCell): void;
 
     getFlags(x: number, y: number): CellFlag;
     setFlags(x: number, y: number, f: CellFlag): void;
@@ -83,6 +90,17 @@ function makeMap(width: number, height: number): Map {
     flags.length = cellCount;
     for (let i = 0; i < cellCount; ++i) {
         flags[i] = 0;
+    }
+
+    function getCell(x: number, y: number): MapCell {
+        const i = y * width + x;
+        return {
+            flags: flags[i],
+        };
+    }
+    function setCell(x: number, y: number, cell: MapCell): void {
+        const i = y * width + x;
+        flags[i] = cell.flags;
     }
 
 
@@ -224,6 +242,8 @@ function makeMap(width: number, height: number): Map {
         width,
         height,
         flags,
+        getCell,
+        setCell,
         getFlags,
         setFlags,
         isFlagSet,
