@@ -18,14 +18,6 @@
  * https://gist.github.com/banksean/300494
  */
 
-const stdGen = new MersenneTwister();
-
-export {
-    MersenneTwister,
-    stdGen,
-}
-
-
 const MAX_INT = 4294967296.0;
 const N = 624;
 const M = 397;
@@ -183,4 +175,19 @@ class MersenneTwister {
 
         return (a * 67108864.0 + b) * (1.0 / 9007199254740992.0);
     }
+
+    /**
+     * Generates a random integer in the interval [min;max[ with at most 32-bit resolution.
+     */
+    intRange(min: number, max: number): number {
+        return min + Math.floor(this.rnd() * (max - min));
+    }
+}
+
+
+const stdGen = new MersenneTwister();
+
+export {
+    MersenneTwister,
+    stdGen,
 }
