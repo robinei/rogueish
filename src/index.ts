@@ -241,10 +241,22 @@ function regenerateMap() {
     }
 
     generateCave(map);
-
     mapDrawer.pathOrigin = map.randomWalkablePos();
+    updateVisible();
 }
 
+function updateVisible() {
+    map.resetVisible();
+    if (mapDrawer.cursorPos) {
+        fieldOfView(
+            mapDrawer.cursorPos.x, mapDrawer.cursorPos.y, 100,
+            (x, y) => {
+                map.setFlag(x, y, CellFlag.Visible | CellFlag.Discovered);
+            },
+            (x, y) => !map.isWalkable(x, y)
+        );
+    }
+}
 
 
 function onDraw() {
@@ -295,15 +307,6 @@ function onMouseMove(e: MouseEvent) {
         return;
     }
     mapDrawer.cursorPos = pos;
-
-    map.resetVisible();
-    fieldOfView(
-        pos.x, pos.y, 100,
-        (x, y) => {
-            map.setFlag(x, y, CellFlag.Visible | CellFlag.Discovered);
-        },
-        (x, y) => !map.isWalkable(x, y)
-    );
-
+    updateVisible();
     display.redraw();
 }
