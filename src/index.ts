@@ -1,7 +1,7 @@
 import { CellFlag, MapCell, Map, makeMap } from "./map";
 import { makeMapDrawer } from "./mapdrawer";
 import { CHAR_DIM, makeDisplay } from "./display";
-import { fieldOfView } from "./fov";
+import { basicFOV } from "./fov";
 import { Vec2, Rect } from "./math";
 import { stdGen } from "./mtrand";
 import { generateMaze } from "./mapgen/maze";
@@ -248,12 +248,15 @@ function regenerateMap() {
 function updateVisible() {
     map.resetVisible();
     if (mapDrawer.cursorPos) {
-        fieldOfView(
+        basicFOV(
             mapDrawer.cursorPos.x, mapDrawer.cursorPos.y, 100,
             (x, y) => {
                 map.setFlag(x, y, CellFlag.Visible | CellFlag.Discovered);
             },
-            (x, y) => !map.isWalkable(x, y)
+            (x, y) => !map.isWalkable(x, y),
+            (x, y) => {
+                map.setFlag(x, y, CellFlag.Debug);
+            }
         );
     }
 }

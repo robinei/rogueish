@@ -23,6 +23,7 @@ const enum CellFlag {
     Walkable = 1,
     Visible = 2,
     Discovered = 4,
+    Debug = 8,
 }
 
 interface MapCell {
@@ -160,7 +161,7 @@ function makeMap(width: number, height: number): Map {
 
     function resetVisible(): void {
         for (let i = 0; i < cellCount; ++i) {
-            flags[i] &= ~CellFlag.Visible;
+            flags[i] &= ~(CellFlag.Visible | CellFlag.Debug);
         }
     }
 

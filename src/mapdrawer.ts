@@ -3,7 +3,7 @@ import { Display, CHAR_DIM } from "./display";
 import { Vec2 } from "./math";
 import { colors, makeColor, scaleColor, blendColors } from "./color";
 import { fieldOfView } from "./fov";
-import { floodFill } from "./util";
+// import { floodFill } from "./util";
 
 
 export {
@@ -76,6 +76,8 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
                         fgColor = colors.gray;
                     }
                 }
+
+                //if ((flags & CellFlag.Debug) !== 0) { bgColor = colors.blue; }
 
                 if ((flags & CellFlag.Visible) === 0) {
                     fgColor = scaleColor(fgColor, 0.25);

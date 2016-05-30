@@ -3,7 +3,6 @@
 import { Map, CellFlag } from "../map";
 import { stdGen } from "../mtrand";
 import { floodFill } from "../util";
-import { Vec2 } from "../math";
 
 export {
     generateCave,
@@ -77,7 +76,7 @@ function generateCave(map: Map): void {
         };
         const rule1: IterRule = (x, y) => adjacentWallCount(x, y, 1) >= 5 || adjacentWallCount(x, y, 2) <= 2;
         const rule2: IterRule = (x, y) => adjacentWallCount(x, y, 1) >= 5 || adjacentWallCount(x, y, 2) <= 1;
-        const rule3: IterRule = (x, y) => adjacentWallCount(x, y, 1) >= 5 || adjacentWallCount(x, y, 2) == 0;
+        const rule3: IterRule = (x, y) => adjacentWallCount(x, y, 1) >= 5 || adjacentWallCount(x, y, 2) === 0;
         const rule4: IterRule = (x, y) => adjacentWallCount(x, y, 1) >= 5;
 
         const rules: IterRule[] = [
@@ -92,9 +91,9 @@ function generateCave(map: Map): void {
             rule4,
         ];
 
-        let pointsX = [0];
-        let pointsY = [0];
-        let pointRules = [0];
+        const pointsX = [0];
+        const pointsY = [0];
+        const pointRules = [0];
         function ruleAtPos(x: number, y: number): number {
             let ruleIndex = 0;
             let dist = Number.MAX_VALUE;
@@ -103,12 +102,12 @@ function generateCave(map: Map): void {
                 const dy = y - pointsY[i];
                 const d = dx * dx + dy * dy;
                 if (d < dist) {
-                    dist = d;
                     ruleIndex = pointRules[i];
+                    dist = d;
                 }
             }
             return ruleIndex;
-        };
+        }
 
         const superRule: IterRule = (x, y) => rules[cellRules[y * width + x]](x, y);
 

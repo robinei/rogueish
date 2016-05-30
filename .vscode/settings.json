@@ -7,6 +7,9 @@
 		"**/.DS_Store": true,
         "**/*.js": { "when": "$(basename).ts" },
         "**/*.js.map": { "when": "$(basename).ts" },
+        "build/": true,
+        "bundle.js": true,
+        "bundle.js.map": true,
         "compiler.jar": true
 	}
 }
