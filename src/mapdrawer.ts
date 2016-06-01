@@ -51,6 +51,9 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
     function draw(): void {
         const { width, height, char, fg, bg } = display.getProps();
 
+        const wallColor = makeColor(244, 164, 96);
+        const soilColor = makeColor(64, 64, 64);
+
         for (let y = 0; y < height; ++y) {
             for (let x = 0; x < width; ++x) {
                 const cellX = x + mapDrawer.corner.x;
@@ -68,12 +71,11 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
                 let fgColor = colors.white;
                 if ((flags & CellFlag.Walkable) === 0) {
                     if (map.isWall(cellX, cellY)) {
-                        charCode = "#".charCodeAt(0);
-                        fgColor = colors.yellow;
-                        bgColor = colors.gray;
+                        charCode = 176;
+                        fgColor = wallColor;
                     } else {
                         charCode = 247;
-                        fgColor = colors.gray;
+                        fgColor = soilColor;
                     }
                 }
 

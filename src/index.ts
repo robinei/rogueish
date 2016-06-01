@@ -1,7 +1,7 @@
 import { CellFlag, MapCell, Map, makeMap } from "./map";
 import { makeMapDrawer } from "./mapdrawer";
 import { CHAR_DIM, makeDisplay } from "./display";
-import { basicFOV } from "./fov";
+import { fieldOfView } from "./fov";
 import { Vec2, Rect } from "./math";
 import { stdGen } from "./mtrand";
 import { generateMaze } from "./mapgen/maze";
@@ -248,16 +248,18 @@ function regenerateMap() {
 function updateVisible() {
     map.resetVisible();
     if (mapDrawer.cursorPos) {
-        basicFOV(
-            mapDrawer.cursorPos.x, mapDrawer.cursorPos.y, 100,
-            (x, y) => {
-                map.setFlag(x, y, CellFlag.Visible | CellFlag.Discovered);
-            },
-            (x, y) => !map.isWalkable(x, y),
-            (x, y) => {
-                map.setFlag(x, y, CellFlag.Debug);
-            }
-        );
+        const t0 = new Date().getTime();
+        for (var i = 0; i < 10; ++i) {
+            fieldOfView(
+                mapDrawer.cursorPos.x, mapDrawer.cursorPos.y, 100,
+                (x, y) => {
+                    map.setFlag(x, y, CellFlag.Visible | CellFlag.Discovered);
+                },
+                (x, y) => !map.isWalkable(x, y)
+            );
+        }
+        const t1 = new Date().getTime();
+        console.log("time: " + (t1 - t0));
     }
 }
 
