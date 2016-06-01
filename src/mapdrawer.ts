@@ -97,7 +97,7 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
             return;
         }
 
-        if (mapDrawer.pathOrigin) {
+        /*if (mapDrawer.pathOrigin) {
             const path = map.calcPath(mapDrawer.pathOrigin, mapDrawer.cursorPos);
             if (path) {
                 for (let p of path) {
@@ -109,7 +109,7 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
                     }
                 }
             }
-        }
+        }*/
 
         const cursorX = mapDrawer.cursorPos.x - mapDrawer.corner.x;
         const cursorY = mapDrawer.cursorPos.y - mapDrawer.corner.y;
