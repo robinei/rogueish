@@ -1,5 +1,5 @@
 import { Map, CellFlag } from "./map";
-import { Display, CHAR_DIM } from "./display";
+import { Display } from "./display";
 import { Vec2 } from "./math";
 import { colors, makeColor, scaleColor, blendColors } from "./color";
 import { fieldOfView } from "./fov";
@@ -39,17 +39,17 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
     }
 
     function canvasCoordToScreenTileCoord(canvasX: number, canvasY: number): Vec2 {
-        const x = Math.floor(canvasX / CHAR_DIM);
-        const y = Math.floor(canvasY / CHAR_DIM);
+        const x = Math.floor(canvasX / display.charDim);
+        const y = Math.floor(canvasY / display.charDim);
         return new Vec2(x, y);
     }
 
     function canvasCoordForWorldTileCoord(x: number, y: number): Vec2 {
-        return new Vec2((x - mapDrawer.corner.x) * CHAR_DIM, (y - mapDrawer.corner.y) * CHAR_DIM);
+        return new Vec2((x - mapDrawer.corner.x) * display.charDim, (y - mapDrawer.corner.y) * display.charDim);
     }
 
     function draw(): void {
-        const { width, height, char, fg, bg } = display.getProps();
+        const { width, height, char, fg, bg } = display;
 
         const wallColor = makeColor(244, 164, 96);
         const soilColor = makeColor(64, 64, 64);

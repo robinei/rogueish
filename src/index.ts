@@ -1,6 +1,6 @@
 import { CellFlag, MapCell, Map, makeMap } from "./map";
 import { MapDrawer, makeMapDrawer } from "./mapdrawer";
-import { CHAR_DIM, Display, makeDisplay } from "./display";
+import { Display, makeDisplay } from "./display";
 import { fieldOfView } from "./fov";
 import { Vec2, Rect } from "./math";
 import { stdGen } from "./mtrand";
@@ -295,8 +295,8 @@ function onClick(e: MouseEvent) {
     console.log("click");
     mapDrawer.pathOrigin = mapDrawer.cursorPos;
     const p = mapDrawer.canvasCoordToWorldTileCoord(e.clientX, e.clientY);
-    mapDrawer.corner.x = p.x - Math.floor(0.5 * canvas.width / CHAR_DIM);
-    mapDrawer.corner.y = p.y - Math.floor(0.5 * canvas.height / CHAR_DIM);
+    mapDrawer.corner.x = p.x - Math.floor(0.5 * canvas.width / display.charDim);
+    mapDrawer.corner.y = p.y - Math.floor(0.5 * canvas.height / display.charDim);
     display.redraw();
 
     /*const gl = (display as any).gl;

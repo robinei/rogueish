@@ -1,29 +1,22 @@
 import { Color, colors, toStringColor } from "./color";
 
-const CHAR_DIM = 12;
-
 
 export {
-    CHAR_DIM,
     Display,
-    DisplayProps,
     makeDisplay,
 }
 
 
 
 interface Display {
-    getProps(): DisplayProps;
-    reshape(): void;
-    redraw(): void;
-}
-
-interface DisplayProps {
+    charDim: number;
     width: number;
     height: number;
     char: number[];
     fg: Color[];
     bg: Color[];
+    reshape(): void;
+    redraw(): void;
 }
 
 function makeDisplay(canvas: HTMLCanvasElement, fontImage: HTMLImageElement, onDraw: () => void): Display {
@@ -34,7 +27,7 @@ function makeDisplay(canvas: HTMLCanvasElement, fontImage: HTMLImageElement, onD
             return display;
         } else {
             console.log("WebGL not supported! Using regular canvas display.");
-            return makeCanvasDisplay(canvas, fontImage, onDraw);
+            return new NormalCanvasDisplay(canvas, fontImage, onDraw);
         }
     } catch (error) {
         console.log("Error creating WebGL display: " + error);
@@ -87,6 +80,7 @@ const VERTEX_STRIDE = 12;
 
 
 class GLCanvasDisplay implements Display {
+    charDim: number;
     count = 0;
     width = 0;
     height = 0;
@@ -100,6 +94,7 @@ class GLCanvasDisplay implements Display {
 
     constructor(private canvas: HTMLCanvasElement, private fontImage: HTMLImageElement, private onDraw: () => void) {
         this.fontImage = fontImage;
+        this.charDim = ~~(fontImage.naturalWidth / 16);
 
         const onError = (e: WebGLContextEvent) => {
             console.log("Error creating WebGL context: " + e.statusMessage);
@@ -189,7 +184,7 @@ class GLCanvasDisplay implements Display {
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.fontImage);
         checkGlError(gl, "texImage2D");
 
-        gl.uniform1f(charDimUniform, CHAR_DIM);
+        gl.uniform1f(charDimUniform, this.charDim);
         checkGlError(gl, "uniform1f");
         gl.uniform1i(textureUniform, 0);
         checkGlError(gl, "uniform1f");
@@ -225,8 +220,8 @@ class GLCanvasDisplay implements Display {
 
 
     reshape() {
-        this.width = Math.ceil(this.canvas.width / CHAR_DIM);
-        this.height = Math.ceil(this.canvas.height / CHAR_DIM);
+        this.width = Math.ceil(this.canvas.width / this.charDim);
+        this.height = Math.ceil(this.canvas.height / this.charDim);
         this.count = this.width * this.height;
         console.log(`Reshaped display: ${this.width} x ${this.height}`)
 
@@ -247,7 +242,7 @@ class GLCanvasDisplay implements Display {
         if (!this.isValid()) {
             return;
         }
-        const { count, width, height, char, fg, bg, gl, bufferArray } = this;
+        const { charDim, count, width, height, char, fg, bg, gl, bufferArray } = this;
 
         char.length = count;
         fg.length = count;
@@ -269,8 +264,8 @@ class GLCanvasDisplay implements Display {
                 const fgc = fg[i];
                 const bgc = bg[i];
 
-                bufferArray[off + 0] = CHAR_DIM * x + CHAR_DIM / 2;
-                bufferArray[off + 1] = CHAR_DIM * y + CHAR_DIM / 2;
+                bufferArray[off + 0] = charDim * x + charDim / 2;
+                bufferArray[off + 1] = charDim * y + charDim / 2;
                 bufferArray[off + 2] = char[i]; // we sneak char code along with position
                 bufferArray[off + 3] = 0;
 
@@ -289,10 +284,6 @@ class GLCanvasDisplay implements Display {
         checkGlError(gl, "bufferData");
         gl.drawArrays(gl.POINTS, 0, count);
         checkGlError(gl, "drawArrays");
-    }
-
-    getProps(): DisplayProps {
-        return this;
     }
 }
 
@@ -379,49 +370,60 @@ function orthoProjectionMatrix(left: number, right: number, bottom: number, top:
 
 
 
-function makeCanvasDisplay(canvas: HTMLCanvasElement, fontImage: HTMLImageElement, onDraw: () => void): Display {
-    const black = colors.black;
-    const white = colors.white;
+class NormalCanvasDisplay implements Display {
+    charDim: number;
+    width = 0;
+    height = 0;
+    count = 0;
+    char = [0];
+    fg = [colors.white];
+    bg = [colors.black];
 
-    let width = 0;
-    let height = 0;
-    let count = 0;
-    let char = [0];
-    let fg = [white];
-    let bg = [colors.black];
+    private prevWidth = 0;
+    private prevHeight = 0;
+    private prevChar = [0];
+    private prevFg = [colors.white];
+    private prevBg = [colors.black];
 
-    let prevWidth = 0;
-    let prevHeight = 0;
-    let prevChar = [0];
-    let prevFg = [white];
-    let prevBg = [black];
+    private dirty = [false];
+    private allDirty = true;
 
-    const dirty = [false];
-    let allDirty = true;
-
-    const context = canvas.getContext("2d");
+    private context: CanvasRenderingContext2D;
 
 
-    function reshape() {
-        width = Math.ceil(canvas.width / CHAR_DIM);
-        height = Math.ceil(canvas.height / CHAR_DIM);
-        count = width * height;
-        console.log(`Reshaped display: ${width} x ${height}`)
-
-        char.length = count;
-        fg.length = count;
-        bg.length = count;
-        dirty.length = count;
-        allDirty = true;
-
-        redraw();
+    constructor(private canvas: HTMLCanvasElement, private fontImage: HTMLImageElement, private onDraw: () => void) {
+        this.context = canvas.getContext("2d");
+        this.charDim = ~~(fontImage.naturalWidth / 16);
     }
 
-    function redraw() {
-        window.requestAnimationFrame(draw);
+
+    reshape() {
+        this.width = Math.ceil(this.canvas.width / this.charDim);
+        this.height = Math.ceil(this.canvas.height / this.charDim);
+        this.count = this.width * this.height;
+        console.log(`Reshaped display: ${this.width} x ${this.height}`)
+
+        this.char.length = this.count;
+        this.fg.length = this.count;
+        this.bg.length = this.count;
+        this.dirty.length = this.count;
+        this.allDirty = true;
+
+        this.redraw();
     }
 
-    function draw() {
+    redraw() {
+        window.requestAnimationFrame(() => this.draw());
+    }
+
+    draw() {
+        const { black, white } = colors;
+        const {
+            count, width, height, char, fg, bg,
+            prevWidth, prevHeight, prevChar, prevFg, prevBg,
+            dirty, allDirty, context, charDim, fontImage
+        } = this;
+
         char.length = count;
         fg.length = count;
         bg.length = count;
@@ -431,7 +433,7 @@ function makeCanvasDisplay(canvas: HTMLCanvasElement, fontImage: HTMLImageElemen
             bg[i] = black;
         }
 
-        onDraw();
+        this.onDraw();
 
         let dirtyCount = 0;
         let currFillColor: Color = undefined;
@@ -459,22 +461,22 @@ function makeCanvasDisplay(canvas: HTMLCanvasElement, fontImage: HTMLImageElemen
                 // and which have white (or invisible) foreground characters.
                 // non-white (and visible) characters need background drawn last, using "destination-over", so skip them for now.
                 if (bg[i] === black || fg[i] !== white && char[i] !== 0 && char[i] !== 32) {
-                    context.clearRect(x * CHAR_DIM, y * CHAR_DIM, CHAR_DIM, CHAR_DIM);
+                    context.clearRect(x * charDim, y * charDim, charDim, charDim);
                 } else {
                     if (currFillColor !== bg[i]) {
                         context.fillStyle = toStringColor(bg[i]);
                         currFillColor = bg[i];
                     }
-                    context.fillRect(x * CHAR_DIM, y * CHAR_DIM, CHAR_DIM, CHAR_DIM);
+                    context.fillRect(x * charDim, y * charDim, charDim, charDim);
                 }
 
                 if (char[i] === 0 || char[i] === 32) {
                     continue;
                 }
                 // draw the foreground characters (using a white font)
-                const sx = (char[i] % 16) * CHAR_DIM;
-                const sy = Math.floor(char[i] / 16) * CHAR_DIM;
-                context.drawImage(fontImage, sx, sy, CHAR_DIM, CHAR_DIM, x * CHAR_DIM, y * CHAR_DIM, CHAR_DIM, CHAR_DIM);
+                const sx = (char[i] % 16) * charDim;
+                const sy = Math.floor(char[i] / 16) * charDim;
+                context.drawImage(fontImage, sx, sy, charDim, charDim, x * charDim, y * charDim, charDim, charDim);
             }
         }
 
@@ -493,7 +495,7 @@ function makeCanvasDisplay(canvas: HTMLCanvasElement, fontImage: HTMLImageElemen
                     context.fillStyle = toStringColor(fg[i]);
                     currFillColor = fg[i];
                 }
-                context.fillRect(x * CHAR_DIM, y * CHAR_DIM, CHAR_DIM, CHAR_DIM);
+                context.fillRect(x * charDim, y * charDim, charDim, charDim);
             }
         }
 
@@ -512,40 +514,24 @@ function makeCanvasDisplay(canvas: HTMLCanvasElement, fontImage: HTMLImageElemen
                     context.fillStyle = toStringColor(bg[i]);
                     currFillColor = bg[i];
                 }
-                context.fillRect(x * CHAR_DIM, y * CHAR_DIM, CHAR_DIM, CHAR_DIM);
+                context.fillRect(x * charDim, y * charDim, charDim, charDim);
             }
         }
 
         context.globalCompositeOperation = "source-over";
 
-        const tempChar = char;
-        const tempFg = fg;
-        const tempBg = bg;
+        this.char = prevChar;
+        this.fg = prevFg;
+        this.bg = prevBg;
 
-        char = prevChar;
-        fg = prevFg;
-        bg = prevBg;
+        this.prevChar = char;
+        this.prevFg = fg;
+        this.prevBg = bg;
+        this.prevWidth = width;
+        this.prevHeight = height;
 
-        prevChar = tempChar;
-        prevFg = tempFg;
-        prevBg = tempBg;
-
-        prevWidth = width;
-        prevHeight = height;
-        allDirty = false;
+        this.allDirty = false;
 
         // console.log("redraw " + dirtyCount + "/" + count);
     }
-
-    return {
-        getProps: () => ({
-            width,
-            height,
-            char,
-            fg,
-            bg,
-        }),
-        reshape,
-        redraw,
-    };
 }
