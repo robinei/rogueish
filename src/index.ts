@@ -1,6 +1,6 @@
 import { CellFlag, MapCell, Map, makeMap } from "./map";
-import { makeMapDrawer } from "./mapdrawer";
-import { CHAR_DIM, makeDisplay } from "./display";
+import { MapDrawer, makeMapDrawer } from "./mapdrawer";
+import { CHAR_DIM, Display, makeDisplay } from "./display";
 import { fieldOfView } from "./fov";
 import { Vec2, Rect } from "./math";
 import { stdGen } from "./mtrand";
@@ -225,11 +225,18 @@ const prefabs: PrefabEntry[] = [
 
 
 
-
 const map = makeMap(200, 110);
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
-const display = makeDisplay(canvas, runApp, onDraw);
-const mapDrawer = makeMapDrawer(map, display);
+const fontImage = <HTMLImageElement>document.getElementById("fontImage");
+let display: Display;
+let mapDrawer: MapDrawer;
+
+if (fontImage.complete && fontImage.naturalHeight > 0) {
+    runApp();
+} else {
+    fontImage.onload = runApp;
+}
+
 
 regenerateMap();
 
@@ -259,7 +266,7 @@ function updateVisible() {
             );
         }
         const t1 = new Date().getTime();
-        console.log("time: " + (t1 - t0));
+        //console.log("time: " + (t1 - t0));
     }
 }
 
@@ -269,6 +276,8 @@ function onDraw() {
 }
 
 function runApp() {
+    display = makeDisplay(canvas, fontImage, onDraw);
+    mapDrawer = makeMapDrawer(map, display);
     window.addEventListener("resize", resizeCanvas);
     document.addEventListener("keydown", onKeyDown);
     document.addEventListener("mousemove", onMouseMove);
@@ -289,6 +298,17 @@ function onClick(e: MouseEvent) {
     mapDrawer.corner.x = p.x - Math.floor(0.5 * canvas.width / CHAR_DIM);
     mapDrawer.corner.y = p.y - Math.floor(0.5 * canvas.height / CHAR_DIM);
     display.redraw();
+
+    /*const gl = (display as any).gl;
+    if (gl) {
+        const ext = gl.getExtension('WEBGL_lose_context');
+        if (ext) {
+            ext.loseContext();
+            setTimeout(() => {
+                ext.restoreContext();
+            }, 200);
+        }
+    }*/
 }
 
 function onKeyDown(e: KeyboardEvent) {

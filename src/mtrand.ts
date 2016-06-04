@@ -185,7 +185,7 @@ class MersenneTwister {
 }
 
 
-const stdGen = new MersenneTwister(1);
+const stdGen = new MersenneTwister();
 
 export {
     MersenneTwister,

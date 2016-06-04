@@ -65,7 +65,7 @@ function generateCave(map: Map): void {
     function doGenerate() {
         for (let y = 1; y < height - 1; ++y) {
             for (let x = 1; x < width - 1; ++x) {
-                walls[y * width + x] = stdGen.rnd() < 0.38;
+                walls[y * width + x] = stdGen.rnd() < 0.55;
             }
         }
 
