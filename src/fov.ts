@@ -1,5 +1,4 @@
-// JavaScript implementation ported to TypeScript, taken from:
-// http://www.roguebasin.com/index.php?title=Permissive_Field_of_View
+// adapted from: http://www.roguebasin.com/index.php?title=Spiral_Path_FOV
 
 export {
     spiralPathFOV as fieldOfView,
@@ -66,28 +65,52 @@ function toAngle(a: number): number {
 
     /** The minimum angle of the tile; that is, the angle of the smallest - angled corner. */
     function calcMinAngle(x: number, y: number): number {
-        if (x === 0 && y === 0) return 0.0; // origin special case
-        if (x >= 0 && y > 0) return coordAngle(x + 1, y); // first quadrant
-        if (x < 0 && y >= 0) return coordAngle(x + 1, y + 1); // second quadrant
-        if (x <= 0 && y < 0) return coordAngle(x, y + 1); // third quadrant
+        if (x === 0 && y === 0) {
+            return 0.0; // origin special case
+        }
+        if (x >= 0 && y > 0) {
+            return coordAngle(x + 1, y); // first quadrant
+        }
+        if (x < 0 && y >= 0) {
+            return coordAngle(x + 1, y + 1); // second quadrant
+        }
+        if (x <= 0 && y < 0) {
+            return coordAngle(x, y + 1); // third quadrant
+        }
         return coordAngle(x, y); // fourth quadrant
     }
 
     /** The maximum angle of the tile; that is, the angle of the largest-angled corner. */
     function calcMaxAngle(x: number, y: number): number {
-        if (x === 0 && y === 0) return 2.0 * Math.PI;  // origin special case
-        if (x > 0 && y >= 0) return coordAngle(x, y + 1); // first quadrant
-        if (x <= 0 && y > 0) return coordAngle(x, y); // second quadrant
-        if (x < 0 && y <= 0) return coordAngle(x + 1, y); // third quadrant
+        if (x === 0 && y === 0) {
+            return 2.0 * Math.PI;  // origin special case
+        }
+        if (x > 0 && y >= 0) {
+            return coordAngle(x, y + 1); // first quadrant
+        }
+        if (x <= 0 && y > 0) {
+            return coordAngle(x, y); // second quadrant
+        }
+        if (x < 0 && y <= 0) {
+            return coordAngle(x + 1, y); // third quadrant
+        }
         return coordAngle(x + 1, y + 1); // fourth quadrant
     }
 
     /** The angle of the outer corner of each tile: On the origin lines, the angle of the FIRST outer corner. */
     function calcOuterAngle(x: number, y: number): number {
-        if (x === 0 && y === 0) return 0.0; // origin special case
-        if (x >= 0 && y > 0) return coordAngle(x + 1, y + 1); // first quadrant with positive y axis
-        if (x < 0 && y >= 0) return coordAngle(x, y + 1); // second quadrant with negative x axis
-        if (x <= 0 && y < 0) return coordAngle(x, y); // third quadrant with negative y axis
+        if (x === 0 && y === 0) {
+            return 0.0; // origin special case
+        }
+        if (x >= 0 && y > 0) {
+            return coordAngle(x + 1, y + 1); // first quadrant with positive y axis
+        }
+        if (x < 0 && y >= 0) {
+            return coordAngle(x, y + 1); // second quadrant with negative x axis
+        }
+        if (x <= 0 && y < 0) {
+            return coordAngle(x, y); // third quadrant with negative y axis
+        }
         return coordAngle(x + 1, y); // fourth quadrant with positive x axis
     }
 
@@ -97,11 +120,21 @@ function toAngle(a: number): number {
      * square to that corner.
      */
     function calcOuterAngle2(x: number, y: number): number {
-        if (x !== 0 && y !== 0) return 0.0; // meaningless on non-axis squares
-        if (x > 0) return coordAngle(x + 1, y + 1);
-        if (x < 0) return coordAngle(x, y);
-        if (y > 0) return coordAngle(x, y + 1);
-        if (y < 0) return coordAngle(x + 1, y);
+        if (x !== 0 && y !== 0) {
+            return 0.0; // meaningless on non-axis squares
+        }
+        if (x > 0) {
+            return coordAngle(x + 1, y + 1);
+        }
+        if (x < 0) {
+            return coordAngle(x, y);
+        }
+        if (y > 0) {
+            return coordAngle(x, y + 1);
+        }
+        if (y < 0) {
+            return coordAngle(x + 1, y);
+        }
         return 0.0; // meaningless on origin
     }
 
@@ -117,16 +150,16 @@ function toAngle(a: number): number {
 
 
 function spiralPathFOV(
-    x: number,
-    y: number,
-    r: number,
+    originX: number,
+    originY: number,
+    radius: number,
     visit: (x: number, y: number) => void,
     blocked: (x: number, y: number) => boolean,
     arcStart: number = 0.0,
     arcEnd: number = 2.0 * Math.PI
 ): void {
-    if (r >= MAX_RADIUS) {
-        throw new Error("fov radius too large: " + r);
+    if (radius >= MAX_RADIUS) {
+        throw new Error("fov radius too large: " + radius);
     }
     arcStart = toAngle(arcStart);
     arcEnd = toAngle(arcEnd);
@@ -135,7 +168,7 @@ function spiralPathFOV(
     let queueTail = 0;
 
     // the point of origin is always marked by the traverse.
-    visit(x, y);
+    visit(originX, originY);
 
     // these 4 squares (in this order) are a valid "starting set" for Spiralpath traversal.
     // A valid starting set is either a clockwise or counterclockwise traversal of all
@@ -145,7 +178,7 @@ function spiralPathFOV(
     testMark(-1, 0, arcStart, arcEnd, minAngleTable[calcTableIndex(-1, 0)], maxAngleTable[calcTableIndex(-1, 0)]);
     testMark(0, -1, arcStart, arcEnd, minAngleTable[calcTableIndex(0, -1)], maxAngleTable[calcTableIndex(0, -1)]);
 
-    while (queueHead != queueTail) {
+    while (queueHead !== queueTail) {
         // we dequeue one item and set all the particulars.  Also, we set the
         // squarelighting to zero for that tile so we know it's off the queue
         // next time we come across it.
@@ -163,7 +196,7 @@ function spiralPathFOV(
         minLitTable[tableIndex] = 0;
         maxLitTable[tableIndex] = 0;
 
-        if (curX * curX + curY * curY < r * r) {
+        if (curX * curX + curY * curY < radius * radius) {
             if (arcStart > arcEnd) {
                 // arc includes anomaly line
                 if (minAngle >= arcStart && maxAngle >= arcStart && minAngle <= arcEnd && maxAngle <= arcEnd) {
@@ -176,51 +209,76 @@ function spiralPathFOV(
                 }
             }
 
-            visit(x + curX, y + curY);
+            visit(originX + curX, originY + curY);
 
-            if (!blocked(x + curX, y + curY)) {
+            if (!blocked(originX + curX, originY + curY)) {
                 let child1X = 0;
                 let child1Y = 0;
-                if (curX == 0 && curY == 0) { child1X = curX; child1Y = curY; } // origin
-                else if (curX >= 0 && curY > 0) { child1X = curX + 1; child1Y = curY; } // quadrant 1
-                else if (curX < 0 && curY >= 0) { child1X = curX; child1Y = curY + 1; } // quadrant 2
-                else if (curX <= 0 && curY < 0) { child1X = curX - 1; child1Y = curY; } // quadrant 3
-                else { child1X = curX; child1Y = curY - 1; } // quadrant 4
+                if (curX === 0 && curY === 0) {
+                    child1X = curX; child1Y = curY; // origin
+                } else if (curX >= 0 && curY > 0) {
+                    child1X = curX + 1; child1Y = curY; // quadrant 1
+                } else if (curX < 0 && curY >= 0) {
+                    child1X = curX; child1Y = curY + 1; // quadrant 2
+                } else if (curX <= 0 && curY < 0) {
+                    child1X = curX - 1; child1Y = curY; // quadrant 3
+                } else {
+                    child1X = curX; child1Y = curY - 1; // quadrant 4
+                }
 
                 let child2X = 0;
                 let child2Y = 0;
-                if (curX == 0 && curY == 0) { child2X = curX; child2Y = curY; } // origin
-                else if (curX >= 0 && curY > 0) { child2X = curX; child2Y = curY + 1; } // quadrant 1
-                else if (curX < 0 && curY >= 0) { child2X = curX - 1; child2Y = curY; } // quadrant 2
-                else if (curX <= 0 && curY < 0) { child2X = curX; child2Y = curY - 1; } // quadrant 3
-                else { child2X = curX + 1; child2Y = curY; } // quadrant 4
+                if (curX === 0 && curY === 0) {
+                    child2X = curX; child2Y = curY; // origin
+                } else if (curX >= 0 && curY > 0) {
+                    child2X = curX; child2Y = curY + 1; // quadrant 1
+                } else if (curX < 0 && curY >= 0) {
+                    child2X = curX - 1; child2Y = curY; // quadrant 2
+                } else if (curX <= 0 && curY < 0) {
+                    child2X = curX; child2Y = curY - 1; // quadrant 3
+                } else {
+                    child2X = curX + 1; child2Y = curY; // quadrant 4
+                }
 
                 testMark(child1X, child1Y, minLitAngle, maxLitAngle, minAngle, outerAngle);
 
-                if (outerAngle2 != 0.0) {
+                if (outerAngle2 !== 0.0) {
                     testMark(child2X, child2Y, minLitAngle, maxLitAngle, outerAngle, outerAngle2);
 
                     let child3X = 0;
                     let child3Y = 0;
-                    if (curX != 0 && curY != 0) { child3X = child3Y = 0; } // non-axis
-                    else if (curX > 0) { child3X = curX; child3Y = curY + 1; }
-                    else if (curX < 0) { child3X = curX; child3Y = curY - 1; }
-                    else if (curY > 0) { child3X = curX - 1; child3Y = curY; }
-                    else if (curY < 0) { child3X = curX + 1; child3Y = curY; }
-                    else { child3X = child3Y = 0; } // origin
+                    if (curX !== 0 && curY !== 0) {
+                        child3X = child3Y = 0; // non-axis
+                    } else if (curX > 0) {
+                        child3X = curX; child3Y = curY + 1;
+                    } else if (curX < 0) {
+                        child3X = curX; child3Y = curY - 1;
+                    } else if (curY > 0) {
+                        child3X = curX - 1; child3Y = curY;
+                    } else if (curY < 0) {
+                        child3X = curX + 1; child3Y = curY;
+                    } else {
+                        child3X = child3Y = 0; // origin
+                    }
 
                     testMark(child3X, child3Y, minLitAngle, maxLitAngle, outerAngle2, maxAngle);
                 } else {
                     testMark(child2X, child2Y, minLitAngle, maxLitAngle, outerAngle, maxAngle);
                 }
-            } else if (minLitAngle == minAngle) {
+            } else if (minLitAngle === minAngle) {
                 let child1X = 0;
                 let child1Y = 0;
-                if (curX == 0 && curY == 0) { child1X = curX; child1Y = curY; } // origin
-                else if (curX >= 0 && curY > 0) { child1X = curX + 1; child1Y = curY; } // quadrant 1
-                else if (curX < 0 && curY >= 0) { child1X = curX; child1Y = curY + 1; } // quadrant 2
-                else if (curX <= 0 && curY < 0) { child1X = curX - 1; child1Y = curY; } // quadrant 3
-                else { child1X = curX; child1Y = curY - 1; } // quadrant 4
+                if (curX === 0 && curY === 0) {
+                    child1X = curX; child1Y = curY; // origin
+                } else if (curX >= 0 && curY > 0) {
+                    child1X = curX + 1; child1Y = curY; // quadrant 1
+                } else if (curX < 0 && curY >= 0) {
+                    child1X = curX; child1Y = curY + 1; // quadrant 2
+                } else if (curX <= 0 && curY < 0) {
+                    child1X = curX - 1; child1Y = curY; // quadrant 3
+                } else {
+                    child1X = curX; child1Y = curY - 1; // quadrant 4
+                }
 
                 // cell is opaque.  We pass an infinitely-narrow ray of
                 // light from its first corner to its first child if we

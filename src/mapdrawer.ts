@@ -79,7 +79,7 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
                     }
                 }
 
-                //if ((flags & CellFlag.Debug) !== 0) { bgColor = colors.blue; }
+                // if ((flags & CellFlag.Debug) !== 0) { bgColor = colors.blue; }
 
                 if ((flags & CellFlag.Visible) === 0) {
                     fgColor = scaleColor(fgColor, 0.25);

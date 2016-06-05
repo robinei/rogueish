@@ -56,12 +56,11 @@ const VERTEX_SHADER_CODE = [
     "bgColorOut = bgColor;",
     "fgColorOut = fgColor;",
     "charCodeOut = position.z;", // get char code from position
-    "}"
+    "}",
 ].join("\n");
 
 const FRAGMENT_SHADER_CODE = [
     "precision mediump float;",
-    "uniform float charDim;",
     "uniform sampler2D texture;",
     "varying vec4 bgColorOut;",
     "varying vec4 fgColorOut;",
@@ -73,7 +72,7 @@ const FRAGMENT_SHADER_CODE = [
     "float ty = (y + gl_PointCoord.y) / 16.0;",
     "vec4 c = fgColorOut * texture2D(texture, vec2(tx, ty));",
     "gl_FragColor = (1.0 - c.a) * bgColorOut + c.a * c;",
-    "}"
+    "}",
 ].join("\n");
 
 const VERTEX_STRIDE = 12;
@@ -101,7 +100,7 @@ class GLCanvasDisplay implements Display {
         };
         const onLost = (e: WebGLContextEvent) => {
             console.log("Lost WebGL context");
-            this.gl = null;
+            this.gl = undefined;
             e.preventDefault();
         };
         const onRestore = (e: WebGLContextEvent) => {
@@ -124,6 +123,70 @@ class GLCanvasDisplay implements Display {
 
     public isValid(): boolean {
         return !!this.gl;
+    }
+
+    reshape() {
+        this.width = Math.ceil(this.canvas.width / this.charDim);
+        this.height = Math.ceil(this.canvas.height / this.charDim);
+        this.count = this.width * this.height;
+        console.log(`Reshaped display: ${this.width} x ${this.height}`);
+
+        this.char.length = this.count;
+        this.fg.length = this.count;
+        this.bg.length = this.count;
+
+        this.onReshape();
+
+        this.redraw();
+    }
+
+    redraw() {
+        window.requestAnimationFrame(() => this.draw());
+    }
+
+    draw() {
+        if (!this.isValid()) {
+            return;
+        }
+        const { charDim, count, width, height, char, fg, bg, gl, bufferArray } = this;
+
+        for (let i = 0; i < count; ++i) {
+            char[i] = 0;
+            fg[i] = colors.white;
+            bg[i] = colors.black;
+        }
+
+        this.onDraw();
+
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        checkGlError(gl, "clear");
+        for (let y = 0; y < height; ++y) {
+            for (let x = 0; x < width; ++x) {
+                const i = y * width + x;
+                const off = i * VERTEX_STRIDE;
+                const fgc = fg[i];
+                const bgc = bg[i];
+
+                bufferArray[off + 0] = charDim * x + charDim / 2;
+                bufferArray[off + 1] = charDim * y + charDim / 2;
+                bufferArray[off + 2] = char[i]; // we sneak char code along with position
+                bufferArray[off + 3] = 0;
+
+                bufferArray[off + 4] = (<any>fgc >>> 24) / 255.0;
+                bufferArray[off + 5] = ((<any>fgc >>> 16) & 255) / 255.0;
+                bufferArray[off + 6] = ((<any>fgc >>> 8) & 255) / 255.0;
+                bufferArray[off + 7] = (<any>fgc & 255) / 255.0;
+
+                bufferArray[off + 8] = (<any>bgc >>> 24) / 255.0;
+                bufferArray[off + 9] = ((<any>bgc >>> 16) & 255) / 255.0;
+                bufferArray[off + 10] = ((<any>bgc >>> 8) & 255) / 255.0;
+                bufferArray[off + 11] = (<any>bgc & 255) / 255.0;
+            }
+        }
+        gl.bufferData(gl.ARRAY_BUFFER, bufferArray, gl.STREAM_DRAW);
+        checkGlError(gl, "bufferData");
+        gl.drawArrays(gl.POINTS, 0, count);
+        checkGlError(gl, "drawArrays");
     }
 
     private createContext(): void {
@@ -215,76 +278,6 @@ class GLCanvasDisplay implements Display {
 
         this.reshape();
     }
-
-
-
-
-    reshape() {
-        this.width = Math.ceil(this.canvas.width / this.charDim);
-        this.height = Math.ceil(this.canvas.height / this.charDim);
-        this.count = this.width * this.height;
-        console.log(`Reshaped display: ${this.width} x ${this.height}`)
-
-        this.char.length = this.count;
-        this.fg.length = this.count;
-        this.bg.length = this.count;
-
-        this.onReshape();
-
-        this.redraw();
-    }
-
-    redraw() {
-        window.requestAnimationFrame(() => this.draw());
-    }
-
-    draw() {
-        if (!this.isValid()) {
-            return;
-        }
-        const { charDim, count, width, height, char, fg, bg, gl, bufferArray } = this;
-
-        char.length = count;
-        fg.length = count;
-        bg.length = count;
-        for (let i = 0; i < count; ++i) {
-            char[i] = 0;
-            fg[i] = colors.white;
-            bg[i] = colors.black;
-        }
-
-        this.onDraw();
-
-        gl.clear(gl.COLOR_BUFFER_BIT);
-        checkGlError(gl, "clear");
-        for (let y = 0; y < height; ++y) {
-            for (let x = 0; x < width; ++x) {
-                const i = y * width + x;
-                const off = i * VERTEX_STRIDE;
-                const fgc = fg[i];
-                const bgc = bg[i];
-
-                bufferArray[off + 0] = charDim * x + charDim / 2;
-                bufferArray[off + 1] = charDim * y + charDim / 2;
-                bufferArray[off + 2] = char[i]; // we sneak char code along with position
-                bufferArray[off + 3] = 0;
-
-                bufferArray[off + 4] = (<any>fgc >>> 24) / 255.0;
-                bufferArray[off + 5] = ((<any>fgc >>> 16) & 255) / 255.0;
-                bufferArray[off + 6] = ((<any>fgc >>> 8) & 255) / 255.0;
-                bufferArray[off + 7] = (<any>fgc & 255) / 255.0;
-
-                bufferArray[off + 8] = (<any>bgc >>> 24) / 255.0;
-                bufferArray[off + 9] = ((<any>bgc >>> 16) & 255) / 255.0;
-                bufferArray[off + 10] = ((<any>bgc >>> 8) & 255) / 255.0;
-                bufferArray[off + 11] = (<any>bgc & 255) / 255.0;
-            }
-        }
-        gl.bufferData(gl.ARRAY_BUFFER, bufferArray, gl.STREAM_DRAW);
-        checkGlError(gl, "bufferData");
-        gl.drawArrays(gl.POINTS, 0, count);
-        checkGlError(gl, "drawArrays");
-    }
 }
 
 /**
@@ -297,10 +290,10 @@ class GLCanvasDisplay implements Display {
  * @return {!WebGLShader} The shader.
  */
 function compileShader(gl: WebGLRenderingContext, shaderSource: string, shaderType: number): WebGLShader {
-    var shader = gl.createShader(shaderType);
+    const shader = gl.createShader(shaderType);
     gl.shaderSource(shader, shaderSource);
     gl.compileShader(shader);
-    var success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+    const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
     if (!success) {
         throw new Error("could not compile shader: " + gl.getShaderInfoLog(shader));
     }
@@ -316,11 +309,11 @@ function compileShader(gl: WebGLRenderingContext, shaderSource: string, shaderTy
  * @return {!WebGLProgram} A program.
  */
 function createProgram(gl: WebGLRenderingContext, vertexShader: WebGLShader, fragmentShader: WebGLShader): WebGLProgram {
-    var program = gl.createProgram();
+    const program = gl.createProgram();
     gl.attachShader(program, vertexShader);
     gl.attachShader(program, fragmentShader);
     gl.linkProgram(program);
-    var success = gl.getProgramParameter(program, gl.LINK_STATUS);
+    const success = gl.getProgramParameter(program, gl.LINK_STATUS);
     if (!success) {
         throw new Error("program filed to link: " + gl.getProgramInfoLog (program));
     }
@@ -335,14 +328,15 @@ function createProgram(gl: WebGLRenderingContext, vertexShader: WebGLShader, fra
  */
 function checkGlError(gl: WebGLRenderingContext, operation: string): void {
     const error = gl.getError();
-    if (error != gl.NO_ERROR && error != gl.CONTEXT_LOST_WEBGL) {
+    if (error !== gl.NO_ERROR && error !== gl.CONTEXT_LOST_WEBGL) {
         const msg = `WebGL error (${operation}): ${error}`;
         console.log(msg);
         throw new Error(msg);
     }
 }
 
-function orthoProjectionMatrix(left: number, right: number, bottom: number, top: number, zNear: number, zFar: number, result: Float32Array) {
+function orthoProjectionMatrix(left: number, right: number, bottom: number, top: number,
+                               zNear: number, zFar: number, result: Float32Array) {
     // 0 4  8 12
     // 1 5  9 13
     // 2 6 10 14
@@ -394,6 +388,7 @@ class NormalCanvasDisplay implements Display {
     constructor(private canvas: HTMLCanvasElement, private fontImage: HTMLImageElement, private onDraw: () => void) {
         this.context = canvas.getContext("2d");
         this.charDim = ~~(fontImage.naturalWidth / 16);
+        this.reshape();
     }
 
 
@@ -401,7 +396,7 @@ class NormalCanvasDisplay implements Display {
         this.width = Math.ceil(this.canvas.width / this.charDim);
         this.height = Math.ceil(this.canvas.height / this.charDim);
         this.count = this.width * this.height;
-        console.log(`Reshaped display: ${this.width} x ${this.height}`)
+        console.log(`Reshaped display: ${this.width} x ${this.height}`);
 
         this.char.length = this.count;
         this.fg.length = this.count;
@@ -421,7 +416,7 @@ class NormalCanvasDisplay implements Display {
         const {
             count, width, height, char, fg, bg,
             prevWidth, prevHeight, prevChar, prevFg, prevBg,
-            dirty, allDirty, context, charDim, fontImage
+            dirty, allDirty, context, charDim, fontImage,
         } = this;
 
         char.length = count;

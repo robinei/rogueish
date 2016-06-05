@@ -255,18 +255,13 @@ function regenerateMap() {
 function updateVisible() {
     map.resetVisible();
     if (mapDrawer.cursorPos) {
-        const t0 = new Date().getTime();
-        for (var i = 0; i < 1; ++i) {
-            fieldOfView(
-                mapDrawer.cursorPos.x, mapDrawer.cursorPos.y, 100,
-                (x, y) => {
-                    map.setFlag(x, y, CellFlag.Visible | CellFlag.Discovered);
-                },
-                (x, y) => !map.isWalkable(x, y)
-            );
-        }
-        const t1 = new Date().getTime();
-        //console.log("time: " + (t1 - t0));
+        fieldOfView(
+            mapDrawer.cursorPos.x, mapDrawer.cursorPos.y, 100,
+            (x, y) => {
+                map.setFlag(x, y, CellFlag.Visible | CellFlag.Discovered);
+            },
+            (x, y) => !map.isWalkable(x, y)
+        );
     }
 }
 
