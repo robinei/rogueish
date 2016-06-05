@@ -47,6 +47,7 @@ const maxAreaRadius = 32;
 
 class Map {
     flags = [0 as CellFlag];
+    heights = [0];
 
     private cellCount: number;
     private expandNode: NodeExpander;
@@ -54,8 +55,10 @@ class Map {
     constructor(public width: number, public height: number) {
         this.cellCount = width * height;
         this.flags.length = this.cellCount;
+        this.heights.length = this.cellCount;
         for (let i = 0; i < this.cellCount; ++i) {
             this.flags[i] = 0;
+            this.heights[i] = 0;
         }
         this.expandNode = makeGridNodeExpander(false, width, height, this.isWalkable);
     }

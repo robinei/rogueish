@@ -2,7 +2,7 @@
 
 import { Map, CellFlag } from "../map";
 import { stdGen } from "../mtrand";
-import { floodFill } from "../util";
+import { ensureContiguous } from "./util";
 
 export {
     generateCave,
@@ -16,11 +16,9 @@ function generateCave(map: Map): void {
 
     let walls = [false];
     let nextWalls = [false];
-    let reachable = [false];
-    let cellRules = [0];
+    const cellRules = [0];
     walls.length = cellCount;
     nextWalls.length = cellCount;
-    reachable.length = cellCount;
     cellRules.length = cellCount;
 
     // Just write walls to both entire arrays, so that borders in particular will be considered walls.
@@ -30,32 +28,21 @@ function generateCave(map: Map): void {
         nextWalls[i] = true;
     }
 
-    while (true) {
-        doGenerate();
+    const reachable = ensureContiguous(
+        stdGen, width, height, 0.2, doGenerate,
+        (x, y) => !walls[y * width + x]
+    );
 
-        for (let i = 0; i < cellCount; ++i) {
-            reachable[i] = false;
-        }
-        const reachableCount = fillReachable();
-        // Regenerate if we didn't find a connected cave covering a big enough fraction of total cells.
-        if (reachableCount / cellCount < 0.2) {
-            continue;
-        }
-        // Now mark everything not reachable as walls.
-        // This will eliminate caves disjoint from the one we found.
-        for (let i = 0; i < cellCount; ++i) {
-            walls[i] = !reachable[i];
-        }
-        break; // Done!
-    }
-
-    // Finally apply the generated cave to the actual map.
     for (let i = 0; i < cellCount; ++i) {
+        // Mark everything not reachable as walls.
+        // This will eliminate caves disjoint from the one we found.
+        walls[i] = !reachable[i];
+
+        // Apply the generated cave to the actual map.
         if (!walls[i]) {
             flags[i] = CellFlag.Walkable;
         }
     }
-
 
     /**
      * Randomly generate every non-border cell,
@@ -169,38 +156,5 @@ function generateCave(map: Map): void {
             return true;
         }
         return walls[y * width + x];
-    }
-
-    /**
-     * Pick a random non-wall cell on the map, and flood fill every non-wall cell
-     * reachable by 4-direction walk from there, marking them all as reachable.
-     * Chances are that the cell we pick will be in the largest connected cave.
-     * @returns {number} Number of reachable cells.
-     */
-    function fillReachable(): number {
-        let foundStart = false;
-        let startX = 0;
-        let startY = 0;
-        for (let tries = 0; tries < 100; ++tries) {
-            startX = stdGen.intRange(0, width);
-            startY = stdGen.intRange(0, height);
-            if (!walls[startY * width + startX]) {
-                foundStart = true;
-                break;
-            }
-        }
-        let reachableCount = 0;
-        if (foundStart) {
-            floodFill(
-                startX, startY,
-                width, height,
-                (x, y) => !reachable[y * width + x] && !walls[y * width + x],
-                (x, y) => {
-                    reachable[y * width + x] = true;
-                    ++reachableCount;
-                }
-            );
-        }
-        return reachableCount;
     }
 }

@@ -6,6 +6,7 @@ import { Vec2, Rect } from "./math";
 import { stdGen } from "./mtrand";
 import { generateMaze } from "./mapgen/maze";
 import { generateCave } from "./mapgen/cave";
+import { generateIsland } from "./mapgen/island";
 
 
 interface PrefabCellSpec {
@@ -225,7 +226,7 @@ const prefabs: PrefabEntry[] = [
 
 
 
-const map = new Map(200, 110);
+const map = new Map(257, 257);
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const fontImage = <HTMLImageElement>document.getElementById("fontImage");
 let display: Display;
@@ -241,13 +242,16 @@ if (fontImage.complete && fontImage.naturalHeight > 0) {
 regenerateMap();
 
 
+
 function regenerateMap() {
     const { width, height, flags } = map;
     for (let i = 0; i < width * height; ++i) {
         flags[i] = 0;
     }
 
-    generateCave(map);
+    // generateCave(map);
+    generateIsland(map, stdGen);
+
     mapDrawer.pathOrigin = map.randomWalkablePos();
     updateVisible();
 }
