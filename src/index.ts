@@ -226,9 +226,31 @@ const prefabs: PrefabEntry[] = [
 */
 
 
+function readNumberSetting(name: string, defValue: number = 0): number {
+    if (localStorage) {
+        const val = localStorage.getItem(name);
+        if (val !== undefined) {
+            const num = parseInt(val, 10);
+            if (!isNaN(num)) {
+                return num;
+            }
+        }
+    }
+    return defValue;
+}
+
+function writeNumberSetting(name: string, value: number): void {
+    if (localStorage) {
+        localStorage.setItem(name, value.toString(10));
+    }
+}
+
+
+
 const map = new Map(129, 129);
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
-const fontImage = <HTMLImageElement>document.getElementById("fontImage");
+const fontId = ["fontImage1", "fontImage2"][readNumberSetting("fontNum", 0)];
+const fontImage = <HTMLImageElement>document.getElementById(fontId);
 let display: Display;
 let mapDrawer: MapDrawer;
 
@@ -293,8 +315,8 @@ function resizeCanvas() {
 function onClick(e: MouseEvent) {
     mapDrawer.pathOrigin = mapDrawer.cursorPos;
     const p = mapDrawer.canvasCoordToWorldTileCoord(e.clientX, e.clientY);
-    mapDrawer.corner.x = p.x - ~~(0.5 * canvas.width / display.charDim);
-    mapDrawer.corner.y = p.y - ~~(0.5 * canvas.height / display.charDim);
+    mapDrawer.corner.x = p.x - ~~(0.5 * canvas.width / display.charWidth);
+    mapDrawer.corner.y = p.y - ~~(0.5 * canvas.height / display.charHeight);
     display.redraw();
 
     /*const gl = (display as any).gl;
@@ -320,6 +342,10 @@ function onKeyDown(e: KeyboardEvent) {
         ++mapDrawer.corner.y;
     } else if (e.keyCode === "r".charCodeAt(0) || e.keyCode === "R".charCodeAt(0)) {
         regenerateMap();
+    } else if (e.keyCode === "f".charCodeAt(0) || e.keyCode === "F".charCodeAt(0)) {
+        const fontNum = (readNumberSetting("fontNum", -1) + 1) % 2;
+        writeNumberSetting("fontNum", fontNum);
+        location.reload();
     }
     display.redraw();
 }

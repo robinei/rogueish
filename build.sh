@@ -5,7 +5,7 @@ rm -f build/*
 
 tsc || exit 1
 
-sh genfont.sh
+sh genfonts.sh
 
 cat almond.js bundle.js > build/temp.js
 cat >> build/temp.js << EOF
@@ -14,7 +14,7 @@ cat >> build/temp.js << EOF
 require("index");
 EOF
 
-java -jar compiler.jar --compilation_level ADVANCED_OPTIMIZATIONS --js build/temp.js --js_output_file build/bundle.js
+java -jar data/compiler.jar --compilation_level ADVANCED_OPTIMIZATIONS --js build/temp.js --js_output_file build/bundle.js
 rm build/temp.js
 
 cp index.html build/

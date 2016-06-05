@@ -9,7 +9,8 @@ export {
 
 
 interface Display {
-    charDim: number;
+    charWidth: number;
+    charHeight: number;
     width: number;
     height: number;
     char: number[];
@@ -42,7 +43,7 @@ function makeDisplay(canvas: HTMLCanvasElement, fontImage: HTMLImageElement, onD
 
 const VERTEX_SHADER_CODE = [
     "precision mediump float;",
-    "uniform float charDim;",
+    "uniform float charHeight;",
     "uniform mat4 projectionMatrix;",
     "attribute vec4 position;",
     "attribute vec4 bgColor;",
@@ -51,7 +52,7 @@ const VERTEX_SHADER_CODE = [
     "varying vec4 fgColorOut;",
     "varying float charCodeOut;",
     "void main() {",
-    `gl_PointSize = charDim;`,
+    `gl_PointSize = charHeight;`,
     "gl_Position = projectionMatrix * vec4(position.xy, 0.0, 1.0);",
     "bgColorOut = bgColor;",
     "fgColorOut = fgColor;",
@@ -61,14 +62,18 @@ const VERTEX_SHADER_CODE = [
 
 const FRAGMENT_SHADER_CODE = [
     "precision mediump float;",
+    "uniform float charWidth;",
+    "uniform float charHeight;",
     "uniform sampler2D texture;",
     "varying vec4 bgColorOut;",
     "varying vec4 fgColorOut;",
     "varying float charCodeOut;",
     "void main() {",
+    "float t =  0.5 * (1.0 - charWidth / charHeight);",
+    "if (gl_PointCoord.x < t || gl_PointCoord.x > 1.0 - t) discard;",
     "float y = floor(charCodeOut / 16.0);",
     "float x = charCodeOut - 16.0 * y;",
-    "float tx = (x + gl_PointCoord.x) / 16.0;",
+    "float tx = (x + (gl_PointCoord.x - t) / (1.0 - 2.0 * t)) / 16.0;",
     "float ty = (y + gl_PointCoord.y) / 16.0;",
     "vec4 c = fgColorOut * texture2D(texture, vec2(tx, ty));",
     "gl_FragColor = (1.0 - c.a) * bgColorOut + c.a * c;",
@@ -79,7 +84,8 @@ const VERTEX_STRIDE = 12;
 
 
 class GLCanvasDisplay implements Display {
-    charDim: number;
+    charWidth: number;
+    charHeight: number;
     count = 0;
     width = 0;
     height = 0;
@@ -93,7 +99,8 @@ class GLCanvasDisplay implements Display {
 
     constructor(private canvas: HTMLCanvasElement, private fontImage: HTMLImageElement, private onDraw: () => void) {
         this.fontImage = fontImage;
-        this.charDim = ~~(fontImage.naturalWidth / 16);
+        this.charWidth = ~~(fontImage.naturalWidth / 16);
+        this.charHeight = ~~(fontImage.naturalHeight / 16);
 
         const onError = (e: WebGLContextEvent) => {
             console.log("Error creating WebGL context: " + e.statusMessage);
@@ -126,8 +133,8 @@ class GLCanvasDisplay implements Display {
     }
 
     reshape() {
-        this.width = Math.ceil(this.canvas.width / this.charDim);
-        this.height = Math.ceil(this.canvas.height / this.charDim);
+        this.width = Math.ceil(this.canvas.width / this.charWidth);
+        this.height = Math.ceil(this.canvas.height / this.charHeight);
         this.count = this.width * this.height;
         console.log(`Reshaped display: ${this.width} x ${this.height}`);
 
@@ -148,7 +155,7 @@ class GLCanvasDisplay implements Display {
         if (!this.isValid()) {
             return;
         }
-        const { charDim, count, width, height, char, fg, bg, gl, bufferArray } = this;
+        const { charWidth, charHeight, count, width, height, char, fg, bg, gl, bufferArray } = this;
 
         for (let i = 0; i < count; ++i) {
             char[i] = 0;
@@ -167,8 +174,8 @@ class GLCanvasDisplay implements Display {
                 const fgc = fg[i];
                 const bgc = bg[i];
 
-                bufferArray[off + 0] = charDim * x + charDim / 2;
-                bufferArray[off + 1] = charDim * y + charDim / 2;
+                bufferArray[off + 0] = charWidth * x + charWidth / 2;
+                bufferArray[off + 1] = charHeight * y + charHeight / 2;
                 bufferArray[off + 2] = char[i]; // we sneak char code along with position
                 bufferArray[off + 3] = 0;
 
@@ -201,7 +208,9 @@ class GLCanvasDisplay implements Display {
         const shaderProgram = createProgram(gl, vertexShader, fragmentShader);
         gl.useProgram(shaderProgram);
 
-        const charDimUniform = gl.getUniformLocation(shaderProgram, "charDim");
+        const charWidthUniform = gl.getUniformLocation(shaderProgram, "charWidth");
+        checkGlError(gl, "getUniformLocation");
+        const charHeightUniform = gl.getUniformLocation(shaderProgram, "charHeight");
         checkGlError(gl, "getUniformLocation");
         const textureUniform = gl.getUniformLocation(shaderProgram, "texture");
         checkGlError(gl, "getUniformLocation");
@@ -247,7 +256,9 @@ class GLCanvasDisplay implements Display {
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.fontImage);
         checkGlError(gl, "texImage2D");
 
-        gl.uniform1f(charDimUniform, this.charDim);
+        gl.uniform1f(charWidthUniform, this.charWidth);
+        checkGlError(gl, "uniform1f");
+        gl.uniform1f(charHeightUniform, this.charHeight);
         checkGlError(gl, "uniform1f");
         gl.uniform1i(textureUniform, 0);
         checkGlError(gl, "uniform1f");
@@ -365,7 +376,8 @@ function orthoProjectionMatrix(left: number, right: number, bottom: number, top:
 
 
 class NormalCanvasDisplay implements Display {
-    charDim: number;
+    charWidth: number;
+    charHeight: number;
     width = 0;
     height = 0;
     count = 0;
@@ -387,14 +399,15 @@ class NormalCanvasDisplay implements Display {
 
     constructor(private canvas: HTMLCanvasElement, private fontImage: HTMLImageElement, private onDraw: () => void) {
         this.context = canvas.getContext("2d");
-        this.charDim = ~~(fontImage.naturalWidth / 16);
+        this.charWidth = ~~(fontImage.naturalWidth / 16);
+        this.charHeight = ~~(fontImage.naturalHeight / 16);
         this.reshape();
     }
 
 
     reshape() {
-        this.width = Math.ceil(this.canvas.width / this.charDim);
-        this.height = Math.ceil(this.canvas.height / this.charDim);
+        this.width = Math.ceil(this.canvas.width / this.charWidth);
+        this.height = Math.ceil(this.canvas.height / this.charHeight);
         this.count = this.width * this.height;
         console.log(`Reshaped display: ${this.width} x ${this.height}`);
 
@@ -416,7 +429,7 @@ class NormalCanvasDisplay implements Display {
         const {
             count, width, height, char, fg, bg,
             prevWidth, prevHeight, prevChar, prevFg, prevBg,
-            dirty, allDirty, context, charDim, fontImage,
+            dirty, allDirty, context, charWidth, charHeight, fontImage,
         } = this;
 
         char.length = count;
@@ -456,22 +469,22 @@ class NormalCanvasDisplay implements Display {
                 // and which have white (or invisible) foreground characters.
                 // non-white (and visible) characters need background drawn last, using "destination-over", so skip them for now.
                 if (bg[i] === black || fg[i] !== white && char[i] !== 0 && char[i] !== 32) {
-                    context.clearRect(x * charDim, y * charDim, charDim, charDim);
+                    context.clearRect(x * charWidth, y * charHeight, charWidth, charHeight);
                 } else {
                     if (currFillColor !== bg[i]) {
                         context.fillStyle = toStringColor(bg[i]);
                         currFillColor = bg[i];
                     }
-                    context.fillRect(x * charDim, y * charDim, charDim, charDim);
+                    context.fillRect(x * charWidth, y * charHeight, charWidth, charHeight);
                 }
 
                 if (char[i] === 0 || char[i] === 32) {
                     continue;
                 }
                 // draw the foreground characters (using a white font)
-                const sx = (char[i] % 16) * charDim;
-                const sy = ~~(char[i] / 16) * charDim;
-                context.drawImage(fontImage, sx, sy, charDim, charDim, x * charDim, y * charDim, charDim, charDim);
+                const sx = (char[i] % 16) * charWidth;
+                const sy = ~~(char[i] / 16) * charHeight;
+                context.drawImage(fontImage, sx, sy, charWidth, charHeight, x * charWidth, y * charHeight, charWidth, charHeight);
             }
         }
 
@@ -490,7 +503,7 @@ class NormalCanvasDisplay implements Display {
                     context.fillStyle = toStringColor(fg[i]);
                     currFillColor = fg[i];
                 }
-                context.fillRect(x * charDim, y * charDim, charDim, charDim);
+                context.fillRect(x * charWidth, y * charHeight, charWidth, charHeight);
             }
         }
 
@@ -509,7 +522,7 @@ class NormalCanvasDisplay implements Display {
                     context.fillStyle = toStringColor(bg[i]);
                     currFillColor = bg[i];
                 }
-                context.fillRect(x * charDim, y * charDim, charDim, charDim);
+                context.fillRect(x * charWidth, y * charHeight, charWidth, charHeight);
             }
         }
 

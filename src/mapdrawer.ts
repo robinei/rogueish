@@ -39,13 +39,13 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
     }
 
     function canvasCoordToScreenTileCoord(canvasX: number, canvasY: number): Vec2 {
-        const x = ~~(canvasX / display.charDim);
-        const y = ~~(canvasY / display.charDim);
+        const x = ~~(canvasX / display.charWidth);
+        const y = ~~(canvasY / display.charHeight);
         return new Vec2(x, y);
     }
 
     function canvasCoordForWorldTileCoord(x: number, y: number): Vec2 {
-        return new Vec2((x - mapDrawer.corner.x) * display.charDim, (y - mapDrawer.corner.y) * display.charDim);
+        return new Vec2((x - mapDrawer.corner.x) * display.charWidth, (y - mapDrawer.corner.y) * display.charHeight);
     }
 
     function draw(): void {
