@@ -21,11 +21,12 @@ const enum CellFlag {
     Walkable = 1,
     Visible = 2,
     Discovered = 4,
-    Debug = 8,
+    Water = 8,
 }
 
 interface MapCell {
     flags: CellFlag;
+    altitude: number;
 }
 
 
@@ -47,7 +48,7 @@ const maxAreaRadius = 32;
 
 class Map {
     flags = [0 as CellFlag];
-    heights = [0];
+    altitude = [0];
 
     private cellCount: number;
     private expandNode: NodeExpander;
@@ -55,10 +56,10 @@ class Map {
     constructor(public width: number, public height: number) {
         this.cellCount = width * height;
         this.flags.length = this.cellCount;
-        this.heights.length = this.cellCount;
+        this.altitude.length = this.cellCount;
         for (let i = 0; i < this.cellCount; ++i) {
             this.flags[i] = 0;
-            this.heights[i] = 0;
+            this.altitude[i] = 0;
         }
         this.expandNode = makeGridNodeExpander(false, width, height, this.isWalkable);
     }
@@ -68,11 +69,13 @@ class Map {
         const i = y * this.width + x;
         return {
             flags: this.flags[i],
+            altitude: this.altitude[i],
         };
     }
     setCell(x: number, y: number, cell: MapCell): void {
         const i = y * this.width + x;
         this.flags[i] = cell.flags;
+        this.altitude[i] = cell.altitude;
     }
 
 
@@ -132,7 +135,7 @@ class Map {
 
     resetVisible(): void {
         for (let i = 0; i < this.cellCount; ++i) {
-            this.flags[i] &= ~(CellFlag.Visible | CellFlag.Debug);
+            this.flags[i] &= ~CellFlag.Visible;
         }
     }
 
@@ -184,10 +187,10 @@ class Map {
 
     calcDistance = (a: number, b: number): number => {
         const ax = a % this.width;
-        const ay = Math.floor(a / this.width);
+        const ay = ~~(a / this.width);
 
         const bx = b % this.width;
-        const by = Math.floor(b / this.width);
+        const by = ~~(b / this.width);
 
         const deltaX = bx - ax;
         const deltaY = by - ay;
@@ -206,22 +209,22 @@ class Map {
         for (let i = 0; i < pathIndexes.length; ++i) {
             const index = pathIndexes[i];
             const x = index % this.width;
-            const y = Math.floor(index / this.width);
+            const y = ~~(index / this.width);
             path.push(new Vec2(x, y));
         }
         return path;
     }
 
     randomPos(): Vec2 {
-        const x = Math.floor(this.width * stdGen.rnd());
-        const y = Math.floor(this.height * stdGen.rnd());
+        const x = ~~(this.width * stdGen.rnd());
+        const y = ~~(this.height * stdGen.rnd());
         return new Vec2(x, y);
     }
 
     randomWalkablePos(): Vec2 {
         for (let tries = 0; tries < 1000; ++tries) {
-            const x = Math.floor(this.width * stdGen.rnd());
-            const y = Math.floor(this.height * stdGen.rnd());
+            const x = ~~(this.width * stdGen.rnd());
+            const y = ~~(this.height * stdGen.rnd());
             if (this.isWalkable(x, y)) {
                 return new Vec2(x, y);
             }
@@ -356,7 +359,7 @@ function makeUndoStack(map: Map): UndoStack {
     let currBucket: AreaPos[] = undefined;
     for (let i = 0; i < areaPositionsByDistance.length; ++i) {
         const pos = areaPositionsByDistance[i];
-        const d = Math.floor(pos.distance);
+        const d = ~~(pos.distance);
         if (d !== currDistance) {
             if (currBucket !== undefined) {
                 areaPositionBuckets.push(currBucket);

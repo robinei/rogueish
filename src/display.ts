@@ -470,7 +470,7 @@ class NormalCanvasDisplay implements Display {
                 }
                 // draw the foreground characters (using a white font)
                 const sx = (char[i] % 16) * charDim;
-                const sy = Math.floor(char[i] / 16) * charDim;
+                const sy = ~~(char[i] / 16) * charDim;
                 context.drawImage(fontImage, sx, sy, charDim, charDim, x * charDim, y * charDim, charDim, charDim);
             }
         }

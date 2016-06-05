@@ -59,7 +59,7 @@ function parseColor(str: string): Color {
         const r = parseInt(parts[0], 10);
         const g = parseInt(parts[1], 10);
         const b = parseInt(parts[2], 10);
-        const a = Math.floor(parseFloat(parts[3]) * 255);
+        const a = ~~(parseFloat(parts[3]) * 255);
         return makeColor(r, g, b, a);
     }
     if (str.indexOf("rgb(") === 0) {
@@ -103,9 +103,9 @@ function toStringColor(color: Color): string {
 
 
 function scaleColor(color: Color, factor: number): Color {
-    const r = Math.floor((<any>color >>> 24) * factor);
-    const g = Math.floor(((<any>color >>> 16) & 255) * factor);
-    const b = Math.floor(((<any>color >>> 8) & 255) * factor);
+    const r = ~~((<any>color >>> 24) * factor);
+    const g = ~~(((<any>color >>> 16) & 255) * factor);
+    const b = ~~(((<any>color >>> 8) & 255) * factor);
     return makeColor(r, g, b, <any>color & 255);
 }
 
@@ -121,10 +121,10 @@ function blendColors(c0: Color, c1: Color, t: number): Color {
     const c1b = (<any>c1 >>> 8) & 255;
     const c1a = <any>c1 & 255;
 
-    const r = Math.floor(t * c1r + (1 - t) * c0r);
-    const g = Math.floor(t * c1g + (1 - t) * c0g);
-    const b = Math.floor(t * c1b + (1 - t) * c0b);
-    const a = Math.floor(t * c1a + (1 - t) * c0a);
+    const r = ~~(t * c1r + (1 - t) * c0r);
+    const g = ~~(t * c1g + (1 - t) * c0g);
+    const b = ~~(t * c1b + (1 - t) * c0b);
+    const a = ~~(t * c1a + (1 - t) * c0a);
 
     return makeColor(r, g, b, a);
 }

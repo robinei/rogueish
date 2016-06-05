@@ -44,7 +44,7 @@ class BinaryHeap<Value> {
 
     swapUpward(i: number): void {
         while (i > 0) {
-            const parent = Math.floor((i - 1) / 2);
+            const parent = ~~((i - 1) / 2);
             if (!this.isLess(i, parent)) {
                 break;
             }
@@ -201,7 +201,7 @@ function makeGridNodeExpander(
 
     return (node: Node, result: Node[]): number => {
         const nodeX = node % width;
-        const nodeY = Math.floor(node / width);
+        const nodeY = ~~(node / width);
         let resultCount = 0;
         for (let i = 0; i < diffX.length; ++i) {
             const x = nodeX + diffX[i];

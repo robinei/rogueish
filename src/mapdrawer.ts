@@ -39,8 +39,8 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
     }
 
     function canvasCoordToScreenTileCoord(canvasX: number, canvasY: number): Vec2 {
-        const x = Math.floor(canvasX / display.charDim);
-        const y = Math.floor(canvasY / display.charDim);
+        const x = ~~(canvasX / display.charDim);
+        const y = ~~(canvasY / display.charDim);
         return new Vec2(x, y);
     }
 
@@ -77,6 +77,16 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
                         charCode = 247;
                         fgColor = soilColor;
                     }
+                }
+
+                if ((flags & CellFlag.Water) !== 0) {
+                    charCode = 247;
+                    bgColor = colors.blue;
+                    fgColor = scaleColor(colors.blue, 0.3);
+                } else {
+                    let t = Math.min(1.0, map.altitude[cellY * map.width + cellX] / 10);
+                    t = ~~(t * 10) / 10;
+                    bgColor = blendColors(bgColor, colors.green, t);
                 }
 
                 // if ((flags & CellFlag.Debug) !== 0) { bgColor = colors.blue; }

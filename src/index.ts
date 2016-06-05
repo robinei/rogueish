@@ -8,7 +8,7 @@ import { generateMaze } from "./mapgen/maze";
 import { generateCave } from "./mapgen/cave";
 import { generateIsland } from "./mapgen/island";
 
-
+/*
 interface PrefabCellSpec {
     char: string;
     wantEntrance: boolean;
@@ -134,11 +134,11 @@ function makeDungeonGenerator(map: Map, prefabs: PrefabEntry[]) {
         let y: number = 0;
         if (addedRooms.length === 0) {
             // place first room in the middle of the map
-            x = Math.floor((map.width - prefab.width) / 2);
-            y = Math.floor((map.height - prefab.height) / 2);
+            x = ~~((map.width - prefab.width) / 2);
+            y = ~~((map.height - prefab.height) / 2);
         } else {
             for (let tries = 0; tries < 10; ++tries) {
-                const room = addedRooms[Math.floor(stdGen.rnd() * addedRooms.length)];
+                const room = addedRooms[~~(stdGen.rnd() * addedRooms.length)];
                 for (const p of room.prefab.entrances) {
                     const used = room.usedEntrances.some(q => p.equals(q));
                     if (used) {
@@ -151,7 +151,7 @@ function makeDungeonGenerator(map: Map, prefabs: PrefabEntry[]) {
     }
 
     function generate() {
-        const targetRoomCount = Math.floor(stdGen.rnd() * 10) + 3;
+        const targetRoomCount = ~~(stdGen.rnd() * 10) + 3;
         let roomCount = 0;
         while (roomCount < targetRoomCount) {
             let succeeded = false;
@@ -223,10 +223,10 @@ const prefabs: PrefabEntry[] = [
     { priority: 0.5, prefab: prefab0 },
 ];
 
+*/
 
 
-
-const map = new Map(257, 257);
+const map = new Map(129, 129);
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const fontImage = <HTMLImageElement>document.getElementById("fontImage");
 let display: Display;
@@ -291,11 +291,10 @@ function resizeCanvas() {
 }
 
 function onClick(e: MouseEvent) {
-    console.log("click");
     mapDrawer.pathOrigin = mapDrawer.cursorPos;
     const p = mapDrawer.canvasCoordToWorldTileCoord(e.clientX, e.clientY);
-    mapDrawer.corner.x = p.x - Math.floor(0.5 * canvas.width / display.charDim);
-    mapDrawer.corner.y = p.y - Math.floor(0.5 * canvas.height / display.charDim);
+    mapDrawer.corner.x = p.x - ~~(0.5 * canvas.width / display.charDim);
+    mapDrawer.corner.y = p.y - ~~(0.5 * canvas.height / display.charDim);
     display.redraw();
 
     /*const gl = (display as any).gl;

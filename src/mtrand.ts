@@ -180,7 +180,7 @@ class MersenneTwister {
      * Generates a random integer in the interval [min;max[ with at most 32-bit resolution.
      */
     intRange(min: number, max: number): number {
-        return min + Math.floor(this.rnd() * (max - min));
+        return min + ~~(this.rnd() * (max - min));
     }
 }
 

@@ -41,7 +41,7 @@ export function shuffleArray<T>(array: T[], count?: number): void {
     // While there remain elements to shuffle...
     while (0 !== currentIndex) {
         // Pick a remaining element...
-        randomIndex = Math.floor(stdGen.rnd() * currentIndex);
+        randomIndex = ~~(stdGen.rnd() * currentIndex);
         currentIndex -= 1;
 
         // And swap it with the current element.
@@ -70,7 +70,7 @@ export function floodFill(
     while (stack.length > 0) {
         const index = stack.pop();
         const ox = index % width;
-        const y = Math.floor(index / width);
+        const y = ~~(index / width);
 
         let x0 = ox;
         while (x0 > 0 && isUnvisitedMatch(x0 - 1, y)) {

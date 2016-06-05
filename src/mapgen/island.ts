@@ -21,13 +21,14 @@ function generateIsland(map: Map, gen: MersenneTwister): void {
     const heightmap = [0];
     heightmap.length = dim * dim;
 
+    // generate a big enough contigous island
     const reachable = ensureContiguous(
         gen, dim, dim, MIN_LAND_FRACTION, doGenerate,
         (x, y) => heightmap[y * dim + x] > 0
     );
 
     // Now mark everything not reachable as sea.
-    // This will eliminate caves disjoint from the one we found.
+    // This will eliminate land disjoint from the island.
     for (let i = 0; i < dim * dim; ++i) {
         if (!reachable[i] || heightmap[i] <= 0) {
             heightmap[i] = FRINGE_HEIGHT;
@@ -38,8 +39,14 @@ function generateIsland(map: Map, gen: MersenneTwister): void {
     const yOff = (map.height - dim) / 2;
     for (let y = 0; y < dim; ++y) {
         for (let x = 0; x < dim; ++x) {
-            if (heightmap[dim * y + x] > 0) {
-                map.setFlag(x + xOff, y + yOff, CellFlag.Walkable);
+            const altitude = heightmap[dim * y + x];
+            if (altitude > 0) {
+                map.setCell(x + xOff, y + yOff, {
+                    flags: CellFlag.Walkable,
+                    altitude: altitude
+                });
+            } else {
+                map.setFlag(x + xOff, y + yOff, CellFlag.Water);
             }
         }
     }

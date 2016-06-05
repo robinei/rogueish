@@ -30,10 +30,9 @@ function ensureContiguous(
         }
         const reachableCount = fillReachable();
         // Regenerate if we didn't find a connected area covering a big enough fraction of total cells.
-        if (reachableCount / size < wantedFillThreshold) {
-            continue;
+        if (reachableCount / size >= wantedFillThreshold) {
+            return reachable;
         }
-        return reachable;
     }
 
     /**

@@ -51,10 +51,10 @@ function generateMaze(map: Map, branchrate: number = 0): void {
 
     while (frontier.length > 0) {
         const pos = Math.pow(stdGen.rnd(), Math.exp(-branchrate));
-        const index = Math.floor(pos * frontier.length);
+        const index = ~~(pos * frontier.length);
         const choice = frontier[index];
         const x = choice % width;
-        const y = Math.floor(choice / width);
+        const y = ~~(choice / width);
         if (check(x, y)) {
             carve(x, y);
         } else {
