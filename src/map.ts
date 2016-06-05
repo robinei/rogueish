@@ -1,6 +1,6 @@
 import { Vec2 } from "./math";
 import { dirDX, dirDY } from "./direction";
-import { findPath, makeGridNodeExpander } from "./pathfind";
+import { findPath, makeGridNodeExpander, NodeExpander } from "./pathfind";
 import { shuffleArray } from "./util";
 import { stdGen } from "./mtrand";
 
@@ -8,9 +8,7 @@ import { stdGen } from "./mtrand";
 export {
     CellFlag,
     MapCell,
-
     Map,
-    makeMap,
 
     UndoStack,
     UndoContext,
@@ -30,45 +28,6 @@ interface MapCell {
     flags: CellFlag;
 }
 
-interface Map {
-    width: number;
-    height: number;
-    flags: CellFlag[];
-
-    getCell(x: number, y: number): MapCell;
-    setCell(x: number, y: number, cell: MapCell): void;
-
-    getFlags(x: number, y: number): CellFlag;
-    setFlags(x: number, y: number, f: CellFlag): void;
-    isFlagSet(x: number, y: number, f: CellFlag): boolean;
-    setFlag(x: number, y: number, f: CellFlag): void;
-    clearFlag(x: number, y: number, f: CellFlag): void;
-
-    isWalkable(x: number, y: number): boolean;
-    isWall(x: number, y: number): boolean;
-
-    resetVisible(): void;
-
-    forNeighbours(originX: number, originY: number, radius: number, func: (cellX: number, cellY: number) => boolean): void;
-    forNeighboursUnbiased(originX: number, originY: number, radius: number, func: (cellX: number, cellY: number) => boolean): void;
-
-    calcPath(start: Vec2, goal: Vec2): Vec2[];
-    randomPos(): Vec2;
-    randomWalkablePos(): Vec2;
-}
-
-interface UndoContext {
-    beginRecording(): void;
-    endRecording(): void;
-    undo(): void;
-}
-
-interface UndoStack {
-    pushContext(ox: number, oy: number, width: number, height: number): UndoContext;
-    popContext(): void;
-    popAll(): void;
-}
-
 
 
 
@@ -86,72 +45,81 @@ const maxAreaRadius = 32;
 
 
 
-function makeMap(width: number, height: number): Map {
-    const cellCount = width * height;
-    const flags = [0 as CellFlag];
-    const expandNode = makeGridNodeExpander(false, width, height, isWalkable);
+class Map {
+    flags = [0 as CellFlag];
 
-    flags.length = cellCount;
-    for (let i = 0; i < cellCount; ++i) {
-        flags[i] = 0;
+    private cellCount: number;
+    private expandNode: NodeExpander;
+
+    constructor(public width: number, public height: number) {
+        this.cellCount = width * height;
+        this.flags.length = this.cellCount;
+        for (let i = 0; i < this.cellCount; ++i) {
+            this.flags[i] = 0;
+        }
+        this.expandNode = makeGridNodeExpander(false, width, height, this.isWalkable);
     }
 
-    function getCell(x: number, y: number): MapCell {
-        const i = y * width + x;
+
+    getCell(x: number, y: number): MapCell {
+        const i = y * this.width + x;
         return {
-            flags: flags[i],
+            flags: this.flags[i],
         };
     }
-    function setCell(x: number, y: number, cell: MapCell): void {
-        const i = y * width + x;
-        flags[i] = cell.flags;
+    setCell(x: number, y: number, cell: MapCell): void {
+        const i = y * this.width + x;
+        this.flags[i] = cell.flags;
     }
 
 
-    function getFlags(x: number, y: number): CellFlag {
-        if (x < 0 || y < 0 || x >= width || y >= height) {
+    getFlags(x: number, y: number): CellFlag {
+        if (x < 0 || y < 0 || x >= this.width || y >= this.height) {
             return 0;
         }
-        return flags[y * width + x];
+        return this.flags[y * this.width + x];
     }
-    function setFlags(x: number, y: number, f: CellFlag): void {
-        if (x < 0 || y < 0 || x >= width || y >= height) {
+    setFlags(x: number, y: number, f: CellFlag): void {
+        if (x < 0 || y < 0 || x >= this.width || y >= this.height) {
             return;
         }
-        flags[y * width + x] = f;
+        this.flags[y * this.width + x] = f;
     }
-    function isFlagSet(x: number, y: number, f: CellFlag): boolean {
-        if (x < 0 || y < 0 || x >= width || y >= height) {
+    isFlagSet(x: number, y: number, f: CellFlag): boolean {
+        if (x < 0 || y < 0 || x >= this.width || y >= this.height) {
             return false;
         }
-        return (flags[y * width + x] & f) !== 0;
+        return (this.flags[y * this.width + x] & f) !== 0;
     }
-    function setFlag(x: number, y: number, f: CellFlag): void {
-        if (x < 0 || y < 0 || x >= width || y >= height) {
+    setFlag(x: number, y: number, f: CellFlag): void {
+        if (x < 0 || y < 0 || x >= this.width || y >= this.height) {
             return;
         }
-        flags[y * width + x] |= f;
+        this.flags[y * this.width + x] |= f;
     }
-    function clearFlag(x: number, y: number, f: CellFlag): void {
-        if (x < 0 || y < 0 || x >= width || y >= height) {
+    clearFlag(x: number, y: number, f: CellFlag): void {
+        if (x < 0 || y < 0 || x >= this.width || y >= this.height) {
             return;
         }
-        flags[y * width + x] &= ~f;
+        this.flags[y * this.width + x] &= ~f;
     }
 
-    function isWalkable(x: number, y: number): boolean {
-        return isFlagSet(x, y, CellFlag.Walkable);
-    }
+    isWalkable = (x: number, y: number): boolean => {
+        if (x < 0 || y < 0 || x >= this.width || y >= this.height) {
+            return false;
+        }
+        return (this.flags[y * this.width + x] & CellFlag.Walkable) !== 0;
+    };
 
-    function isWall(x: number, y: number): boolean {
-        if ((flags[y * width + x] & CellFlag.Walkable) === 0) {
+    isWall(x: number, y: number): boolean {
+        if ((this.flags[y * this.width + x] & CellFlag.Walkable) === 0) {
             for (let dir = 0; dir < 8; ++dir) {
                 const nx = x + dirDX[dir];
                 const ny = y + dirDY[dir];
-                if (nx < 0 || ny < 0 || nx >= width || ny >= height) {
+                if (nx < 0 || ny < 0 || nx >= this.width || ny >= this.height) {
                     continue;
                 }
-                if ((flags[ny * width + nx] & CellFlag.Walkable) !== 0) {
+                if ((this.flags[ny * this.width + nx] & CellFlag.Walkable) !== 0) {
                     return true;
                 }
             }
@@ -159,14 +127,14 @@ function makeMap(width: number, height: number): Map {
         return false;
     }
 
-    function resetVisible(): void {
-        for (let i = 0; i < cellCount; ++i) {
-            flags[i] &= ~(CellFlag.Visible | CellFlag.Debug);
+    resetVisible(): void {
+        for (let i = 0; i < this.cellCount; ++i) {
+            this.flags[i] &= ~(CellFlag.Visible | CellFlag.Debug);
         }
     }
 
 
-    function forNeighbours(originX: number, originY: number, radius: number, func: (cellX: number, cellY: number) => boolean): void {
+    forNeighbours(originX: number, originY: number, radius: number, func: (cellX: number, cellY: number) => boolean): void {
         if (radius > maxAreaRadius) {
             throw "too big radius";
         }
@@ -177,7 +145,7 @@ function makeMap(width: number, height: number): Map {
             }
             const x = pos.x + originX;
             const y = pos.y + originY;
-            if (x < 0 || y < 0 || x >= width || y >= height) {
+            if (x < 0 || y < 0 || x >= this.width || y >= this.height) {
                 continue;
             }
             if (!func(x, y)) {
@@ -186,8 +154,8 @@ function makeMap(width: number, height: number): Map {
         }
     }
 
-    function forNeighboursUnbiased(originX: number, originY: number, radius: number,
-                                   func: (cellX: number, cellY: number) => boolean): void {
+    forNeighboursUnbiased(originX: number, originY: number, radius: number,
+                          func: (cellX: number, cellY: number) => boolean): void {
         if (radius > maxAreaRadius) {
             throw "too big radius";
         }
@@ -201,7 +169,7 @@ function makeMap(width: number, height: number): Map {
                 }
                 const x = pos.x + originX;
                 const y = pos.y + originY;
-                if (x < 0 || y < 0 || x >= width || y >= height) {
+                if (x < 0 || y < 0 || x >= this.width || y >= this.height) {
                     continue;
                 }
                 if (!func(x, y)) {
@@ -211,75 +179,71 @@ function makeMap(width: number, height: number): Map {
         }
     }
 
-    function calcDistance(a: number, b: number): number {
-        const ax = a % width;
-        const ay = Math.floor(a / width);
+    calcDistance = (a: number, b: number): number => {
+        const ax = a % this.width;
+        const ay = Math.floor(a / this.width);
 
-        const bx = b % width;
-        const by = Math.floor(b / width);
+        const bx = b % this.width;
+        const by = Math.floor(b / this.width);
 
         const deltaX = bx - ax;
         const deltaY = by - ay;
 
         return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-    }
+    };
 
-    function calcPath(start: Vec2, goal: Vec2): Vec2[] {
-        const startIndex = start.y * width + start.x;
-        const goalIndex = goal.y * width + goal.x;
-        const pathIndexes = findPath(cellCount, startIndex, goalIndex, calcDistance, expandNode);
+    calcPath(start: Vec2, goal: Vec2): Vec2[] {
+        const startIndex = start.y * this.width + start.x;
+        const goalIndex = goal.y * this.width + goal.x;
+        const pathIndexes = findPath(this.cellCount, startIndex, goalIndex, this.calcDistance, this.expandNode);
         if (pathIndexes === undefined) {
             return undefined;
         }
         const path: Vec2[] = [];
         for (let i = 0; i < pathIndexes.length; ++i) {
             const index = pathIndexes[i];
-            const x = index % width;
-            const y = Math.floor(index / width);
+            const x = index % this.width;
+            const y = Math.floor(index / this.width);
             path.push(new Vec2(x, y));
         }
         return path;
     }
 
-    function randomPos(): Vec2 {
-        const x = Math.floor(width * stdGen.rnd());
-        const y = Math.floor(height * stdGen.rnd());
+    randomPos(): Vec2 {
+        const x = Math.floor(this.width * stdGen.rnd());
+        const y = Math.floor(this.height * stdGen.rnd());
         return new Vec2(x, y);
     }
 
-    function randomWalkablePos(): Vec2 {
+    randomWalkablePos(): Vec2 {
         for (let tries = 0; tries < 1000; ++tries) {
-            const x = Math.floor(width * stdGen.rnd());
-            const y = Math.floor(height * stdGen.rnd());
-            if (isWalkable(x, y)) {
+            const x = Math.floor(this.width * stdGen.rnd());
+            const y = Math.floor(this.height * stdGen.rnd());
+            if (this.isWalkable(x, y)) {
                 return new Vec2(x, y);
             }
         }
         return undefined;
     }
-
-    return {
-        width,
-        height,
-        flags,
-        getCell,
-        setCell,
-        getFlags,
-        setFlags,
-        isFlagSet,
-        setFlag,
-        clearFlag,
-        isWalkable: (x, y) => isFlagSet(x, y, CellFlag.Walkable),
-        isWall,
-        resetVisible,
-        forNeighbours,
-        forNeighboursUnbiased,
-        calcPath,
-        randomPos,
-        randomWalkablePos,
-    };
 }
 
+
+
+
+
+
+
+interface UndoContext {
+    beginRecording(): void;
+    endRecording(): void;
+    undo(): void;
+}
+
+interface UndoStack {
+    pushContext(ox: number, oy: number, width: number, height: number): UndoContext;
+    popContext(): void;
+    popAll(): void;
+}
 
 function makeUndoContext(map: Map, ox: number, oy: number, width: number, height: number): UndoContext {
     let begun = false;

@@ -1,6 +1,7 @@
 
 export {
     findPath,
+    NodeExpander,
     makeGridNodeExpander,
 }
 
@@ -184,9 +185,16 @@ function findPath(
 }
 
 
+type NodeExpander = (node: Node, result: Node[]) => number;
+
 // create a function which calculates the neighbours of a given node, in a grid.
 // "node" is a 1D index into an array of size "width" x "height" representing the 2D grid
-function makeGridNodeExpander(eightDirections: boolean, width: number, height: number, isWalkable: (x: number, y: number) => boolean) {
+function makeGridNodeExpander(
+    eightDirections: boolean,
+    width: number,
+    height: number,
+    isWalkable: (x: number, y: number) => boolean
+): NodeExpander {
     // coordinate deltas for children in all 8 or 4 directions, starting north going clockwise
     const diffX = eightDirections ? [ 0,  1, 1, 1, 0, -1, -1, -1] : [  0, 1, 0, -1];
     const diffY = eightDirections ? [-1, -1, 0, 1, 1,  1,  0, -1] : [ -1, 0, 1,  0];

@@ -1,4 +1,4 @@
-import { CellFlag, MapCell, Map, makeMap } from "./map";
+import { CellFlag, MapCell, Map } from "./map";
 import { MapDrawer, makeMapDrawer } from "./mapdrawer";
 import { Display, makeDisplay } from "./display";
 import { fieldOfView } from "./fov";
@@ -225,7 +225,7 @@ const prefabs: PrefabEntry[] = [
 
 
 
-const map = makeMap(200, 110);
+const map = new Map(200, 110);
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const fontImage = <HTMLImageElement>document.getElementById("fontImage");
 let display: Display;
