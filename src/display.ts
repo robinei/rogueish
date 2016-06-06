@@ -195,7 +195,7 @@ class GLCanvasDisplay implements Display {
             atlasBuffer[off + 2] = (<any>bgc >>> 8) & 255;
             atlasBuffer[off + 3] = char[i]; // we sneak char code along with background color
         }
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height * 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.atlasBuffer);
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width, height * 2, gl.RGBA, gl.UNSIGNED_BYTE, this.atlasBuffer);
         checkGlError(gl, "texImage2D");
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         checkGlError(gl, "drawArrays");
@@ -302,6 +302,8 @@ class GLCanvasDisplay implements Display {
                 return;
             }
             this.atlasBuffer = new Uint8Array(this.width * this.height * 4 * 2);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.width, this.height * 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.atlasBuffer);
+            checkGlError(gl, "texImage2D");
 
             gl.uniform1f(renderWidthUniform, this.width * this.charWidth);
             checkGlError(gl, "uniform1f");
