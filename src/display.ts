@@ -16,7 +16,7 @@ interface Display {
     char: number[];
     fg: Color[];
     bg: Color[];
-    reshape(): void;
+    reshape(force: boolean): void;
     redraw(): void;
     destroy(): void;
 }
@@ -148,15 +148,20 @@ class GLCanvasDisplay implements Display {
         this.deleteGLHandles();
     }
 
-    reshape() {
-        this.width = Math.ceil(this.canvas.width / this.charWidth);
-        this.height = Math.ceil(this.canvas.height / this.charHeight);
-        this.count = this.width * this.height;
-        console.log(`Reshaped display: ${this.width} x ${this.height}`);
+    reshape(force: boolean) {
+        const width = Math.ceil(this.canvas.width / this.charWidth);
+        const height = Math.ceil(this.canvas.height / this.charHeight);
+        if (!force && width === this.width && height === this.height) {
+            return;
+        }
+        this.width = width;
+        this.height = height;
+        const count = this.count = width * height;
+        console.log(`Reshaped display: ${width} x ${height}`);
 
-        this.char.length = this.count;
-        this.fg.length = this.count;
-        this.bg.length = this.count;
+        this.char.length = count;
+        this.fg.length = count;
+        this.bg.length = count;
 
         this.onReshape();
 
@@ -317,7 +322,7 @@ class GLCanvasDisplay implements Display {
             checkGlError(gl, "viewport");
         };
 
-        this.reshape();
+        this.reshape(true);
     }
 }
 
@@ -407,22 +412,27 @@ class NormalCanvasDisplay implements Display {
         this.context = canvas.getContext("2d");
         this.charWidth = ~~(fontImage.naturalWidth / 16);
         this.charHeight = ~~(fontImage.naturalHeight / 16);
-        this.reshape();
+        this.reshape(true);
     }
 
     destroy(): void {
     }
 
-    reshape() {
-        this.width = Math.ceil(this.canvas.width / this.charWidth);
-        this.height = Math.ceil(this.canvas.height / this.charHeight);
-        this.count = this.width * this.height;
-        console.log(`Reshaped display: ${this.width} x ${this.height}`);
+    reshape(force: boolean) {
+        const width = Math.ceil(this.canvas.width / this.charWidth);
+        const height = Math.ceil(this.canvas.height / this.charHeight);
+        if (!force && width === this.width && height === this.height) {
+            return;
+        }
+        this.width = width;
+        this.height = height;
+        const count = this.count = width * height;
+        console.log(`Reshaped display: ${width} x ${height}`);
 
-        this.char.length = this.count;
-        this.fg.length = this.count;
-        this.bg.length = this.count;
-        this.dirty.length = this.count;
+        this.char.length = count;
+        this.fg.length = count;
+        this.bg.length = count;
+        this.dirty.length = count;
         this.allDirty = true;
 
         this.redraw();

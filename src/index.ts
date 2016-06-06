@@ -109,7 +109,7 @@ function runApp() {
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    display.reshape();
+    display.reshape(true);
 }
 
 function onClick(e: MouseEvent) {
