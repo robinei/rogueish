@@ -43,44 +43,44 @@ function makeDisplay(canvas: HTMLCanvasElement, fontImage: HTMLImageElement, onD
 
 const VERTEX_SHADER_CODE = [
     "precision mediump float;",
-    "uniform float charHeight;",
-    "uniform mat4 projectionMatrix;",
     "attribute vec4 position;",
-    "attribute vec4 bgColor;",
-    "attribute vec4 fgColor;",
-    "varying vec4 bgColorOut;",
-    "varying vec4 fgColorOut;",
-    "varying float charCodeOut;",
     "void main() {",
-    `gl_PointSize = charHeight;`,
-    "gl_Position = projectionMatrix * vec4(position.xy, 0.0, 1.0);",
-    "bgColorOut = bgColor;",
-    "fgColorOut = fgColor;",
-    "charCodeOut = position.z;", // get char code from position
+    "gl_Position = position;",
     "}",
 ].join("\n");
 
 const FRAGMENT_SHADER_CODE = [
     "precision mediump float;",
+    "uniform float renderWidth;",
+    "uniform float renderHeight;",
+    "uniform float canvasHeight;",
     "uniform float charWidth;",
     "uniform float charHeight;",
-    "uniform sampler2D texture;",
-    "varying vec4 bgColorOut;",
-    "varying vec4 fgColorOut;",
-    "varying float charCodeOut;",
+    "uniform sampler2D fontTexture;",
+    "uniform sampler2D atlasTexture;",
     "void main() {",
-    "float t =  0.5 * (1.0 - charWidth / charHeight);",
-    "if (gl_PointCoord.x < t || gl_PointCoord.x > 1.0 - t) discard;",
-    "float y = floor(charCodeOut / 16.0);",
-    "float x = charCodeOut - 16.0 * y;",
-    "float tx = (x + (gl_PointCoord.x - t) / (1.0 - 2.0 * t)) / 16.0;",
-    "float ty = (y + gl_PointCoord.y) / 16.0;",
-    "vec4 c = fgColorOut * texture2D(texture, vec2(tx, ty));",
-    "gl_FragColor = (1.0 - c.a) * bgColorOut + c.a * c;",
+
+    "float x = gl_FragCoord.x / renderWidth;",
+    "float y = (canvasHeight - gl_FragCoord.y) / renderHeight;",
+
+    "vec4 fg = texture2D(atlasTexture, vec2(x, y * 0.5));",
+    "vec4 bg = texture2D(atlasTexture, vec2(x, 0.5 + y * 0.5));",
+
+    "float cx = mod(gl_FragCoord.x, charWidth) / charWidth;",
+    "float cy = mod(canvasHeight - gl_FragCoord.y, charHeight) / charHeight;",
+
+    "float ch = bg.a * 255.0;",
+    "float j = floor(ch / 16.0);",
+    "float i = ch - 16.0 * j;",
+
+    "float tx = (i + cx) / 16.0;",
+    "float ty = (j + cy) / 16.0;",
+    "vec4 c = fg * texture2D(fontTexture, vec2(tx, ty));",
+
+    "gl_FragColor = vec4((1.0 - c.a) * bg.rgb + c.a * c.rgb, 1.0);",
     "}",
 ].join("\n");
 
-const VERTEX_STRIDE = 12;
 
 
 class GLCanvasDisplay implements Display {
@@ -94,8 +94,12 @@ class GLCanvasDisplay implements Display {
     bg = [colors.black];
 
     private gl: WebGLRenderingContext;
-    private bufferArray: Float32Array;
     private onReshape: () => void;
+
+    private fontTexture: WebGLTexture;
+    private atlasTexture: WebGLTexture;
+    private atlasBuffer: Uint8Array;
+
 
     constructor(private canvas: HTMLCanvasElement, private fontImage: HTMLImageElement, private onDraw: () => void) {
         this.fontImage = fontImage;
@@ -155,7 +159,7 @@ class GLCanvasDisplay implements Display {
         if (!this.isValid()) {
             return;
         }
-        const { charWidth, charHeight, count, width, height, char, fg, bg, gl, bufferArray } = this;
+        const { count, width, height, char, fg, bg, gl, atlasBuffer } = this;
 
         for (let i = 0; i < count; ++i) {
             char[i] = 0;
@@ -165,34 +169,23 @@ class GLCanvasDisplay implements Display {
 
         this.onDraw();
 
-        gl.clear(gl.COLOR_BUFFER_BIT);
-        checkGlError(gl, "clear");
-        for (let y = 0; y < height; ++y) {
-            for (let x = 0; x < width; ++x) {
-                const i = y * width + x;
-                const off = i * VERTEX_STRIDE;
-                const fgc = fg[i];
-                const bgc = bg[i];
-
-                bufferArray[off + 0] = charWidth * x + charWidth / 2;
-                bufferArray[off + 1] = charHeight * y + charHeight / 2;
-                bufferArray[off + 2] = char[i]; // we sneak char code along with position
-                bufferArray[off + 3] = 0;
-
-                bufferArray[off + 4] = (<any>fgc >>> 24) / 255.0;
-                bufferArray[off + 5] = ((<any>fgc >>> 16) & 255) / 255.0;
-                bufferArray[off + 6] = ((<any>fgc >>> 8) & 255) / 255.0;
-                bufferArray[off + 7] = (<any>fgc & 255) / 255.0;
-
-                bufferArray[off + 8] = (<any>bgc >>> 24) / 255.0;
-                bufferArray[off + 9] = ((<any>bgc >>> 16) & 255) / 255.0;
-                bufferArray[off + 10] = ((<any>bgc >>> 8) & 255) / 255.0;
-                bufferArray[off + 11] = (<any>bgc & 255) / 255.0;
-            }
+        for (let i = 0, off = 0; i < count; ++i, off += 4) {
+            const fgc = fg[i];
+            atlasBuffer[off + 0] = <any>fgc >>> 24;
+            atlasBuffer[off + 1] = (<any>fgc >>> 16) & 255;
+            atlasBuffer[off + 2] = (<any>fgc >>> 8) & 255;
+            atlasBuffer[off + 3] = <any>fgc & 255;
         }
-        gl.bufferData(gl.ARRAY_BUFFER, bufferArray, gl.STREAM_DRAW);
-        checkGlError(gl, "bufferData");
-        gl.drawArrays(gl.POINTS, 0, count);
+        for (let i = 0, off = count * 4; i < count; ++i, off += 4) {
+            const bgc = bg[i];
+            atlasBuffer[off + 0] = <any>bgc >>> 24;
+            atlasBuffer[off + 1] = (<any>bgc >>> 16) & 255;
+            atlasBuffer[off + 2] = (<any>bgc >>> 8) & 255;
+            atlasBuffer[off + 3] = char[i]; // we sneak char code along with background color
+        }
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height * 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.atlasBuffer);
+        checkGlError(gl, "texImage2D");
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         checkGlError(gl, "drawArrays");
     }
 
@@ -208,62 +201,71 @@ class GLCanvasDisplay implements Display {
         const shaderProgram = createProgram(gl, vertexShader, fragmentShader);
         gl.useProgram(shaderProgram);
 
+        const renderWidthUniform = gl.getUniformLocation(shaderProgram, "renderWidth");
+        checkGlError(gl, "getUniformLocation");
+        const renderHeightUniform = gl.getUniformLocation(shaderProgram, "renderHeight");
+        checkGlError(gl, "getUniformLocation");
+        const canvasHeightUniform = gl.getUniformLocation(shaderProgram, "canvasHeight");
+        checkGlError(gl, "getUniformLocation");
         const charWidthUniform = gl.getUniformLocation(shaderProgram, "charWidth");
         checkGlError(gl, "getUniformLocation");
         const charHeightUniform = gl.getUniformLocation(shaderProgram, "charHeight");
         checkGlError(gl, "getUniformLocation");
-        const textureUniform = gl.getUniformLocation(shaderProgram, "texture");
+        const fontTextureUniform = gl.getUniformLocation(shaderProgram, "fontTexture");
         checkGlError(gl, "getUniformLocation");
-        const projectionMatrixUniform = gl.getUniformLocation(shaderProgram, "projectionMatrix");
+        const atlasTextureUniform = gl.getUniformLocation(shaderProgram, "atlasTexture");
         checkGlError(gl, "getUniformLocation");
 
-        const vertexStride = 12;
-        const buffer = gl.createBuffer();
+        const vertexBuffer = gl.createBuffer();
         checkGlError(gl, "createBuffer");
-        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
         checkGlError(gl, "bindBuffer");
+        const vertexBufferArray = new Float32Array([
+            -1, 1, 0, 1,
+            -1, -1, 0, 1,
+            1, 1, 0, 1,
+            1, -1, 0, 1,
+        ]);
+        gl.bufferData(gl.ARRAY_BUFFER, vertexBufferArray, gl.STATIC_DRAW);
+        checkGlError(gl, "bufferData");
 
         const positionAttribute = gl.getAttribLocation(shaderProgram, "position");
         checkGlError(gl, "getAttribLocation");
         gl.enableVertexAttribArray(positionAttribute);
         checkGlError(gl, "enableVertexAttribArray");
-        gl.vertexAttribPointer(positionAttribute, 4, gl.FLOAT, false, vertexStride * 4, 0);
+        gl.vertexAttribPointer(positionAttribute, 4, gl.FLOAT, false, 0, 0);
         checkGlError(gl, "vertexAttribPointer");
 
-        const fgColorAttribute = gl.getAttribLocation(shaderProgram, "fgColor");
-        checkGlError(gl, "getAttribLocation");
-        gl.enableVertexAttribArray(fgColorAttribute);
-        checkGlError(gl, "enableVertexAttribArray");
-        gl.vertexAttribPointer(fgColorAttribute, 4, gl.FLOAT, false, vertexStride * 4, 4 * 4);
-        checkGlError(gl, "vertexAttribPointer");
+        const makeTexture = (): WebGLTexture => {
+            const texture = gl.createTexture();
+            checkGlError(gl, "createTexture");
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            checkGlError(gl, "bindTexture");
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+            checkGlError(gl, "texParameteri");
+            return texture;
+        };
 
-        const bgColorAttribute = gl.getAttribLocation(shaderProgram, "bgColor");
-        checkGlError(gl, "getAttribLocation");
-        gl.enableVertexAttribArray(bgColorAttribute);
-        checkGlError(gl, "enableVertexAttribArray");
-        gl.vertexAttribPointer(bgColorAttribute, 4, gl.FLOAT, false, vertexStride * 4, 8 * 4);
-        checkGlError(gl, "vertexAttribPointer");
 
-        const fontTexture = gl.createTexture();
-        checkGlError(gl, "createTexture");
-        gl.bindTexture(gl.TEXTURE_2D, fontTexture);
-        checkGlError(gl, "bindTexture");
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        checkGlError(gl, "texParameteri");
+        gl.activeTexture(gl.TEXTURE0);
+        this.fontTexture = makeTexture();
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.fontImage);
         checkGlError(gl, "texImage2D");
 
+        gl.activeTexture(gl.TEXTURE1);
+        this.atlasTexture = makeTexture();
+
+        gl.uniform1i(fontTextureUniform, 0);
+        checkGlError(gl, "uniform1f");
+        gl.uniform1i(atlasTextureUniform, 1);
+        checkGlError(gl, "uniform1f");
         gl.uniform1f(charWidthUniform, this.charWidth);
         checkGlError(gl, "uniform1f");
         gl.uniform1f(charHeightUniform, this.charHeight);
         checkGlError(gl, "uniform1f");
-        gl.uniform1i(textureUniform, 0);
-        checkGlError(gl, "uniform1f");
-        gl.activeTexture(gl.TEXTURE0);
-        checkGlError(gl, "activeTexture");
 
         gl.clearColor(0, 0, 0, 1);
         checkGlError(gl, "clearColor");
@@ -274,17 +276,22 @@ class GLCanvasDisplay implements Display {
         gl.depthMask(false);
         checkGlError(gl, "depthMask");
 
-        const projectionMatrixArray = new Float32Array(16);
         this.onReshape = () => {
             if (!this.isValid()) {
                 return;
             }
-            this.bufferArray = new Float32Array(this.count * VERTEX_STRIDE);
+            this.atlasBuffer = new Uint8Array(this.width * this.height * 4 * 2);
+
+            gl.uniform1f(renderWidthUniform, this.width * this.charWidth);
+            checkGlError(gl, "uniform1f");
+            gl.uniform1f(renderHeightUniform, this.height * this.charHeight);
+            checkGlError(gl, "uniform1f");
+
+            gl.uniform1f(canvasHeightUniform, canvas.height);
+            checkGlError(gl, "uniform1f");
+
             gl.viewport(0, 0, canvas.width, canvas.height);
             checkGlError(gl, "viewport");
-            orthoProjectionMatrix(0, canvas.width, canvas.height, 0, -1, 1, projectionMatrixArray); // top left origin
-            gl.uniformMatrix4fv(projectionMatrixUniform, false, projectionMatrixArray);
-            checkGlError(gl, "uniformMatrix4fv");
         };
 
         this.reshape();
@@ -344,30 +351,6 @@ function checkGlError(gl: WebGLRenderingContext, operation: string): void {
         console.log(msg);
         throw new Error(msg);
     }
-}
-
-function orthoProjectionMatrix(left: number, right: number, bottom: number, top: number,
-                               zNear: number, zFar: number, result: Float32Array) {
-    // 0 4  8 12
-    // 1 5  9 13
-    // 2 6 10 14
-    // 3 7 11 15
-    result[0] = 2 / (right - left);
-    result[1] = 0;
-    result[2] = 0;
-    result[3] = 0;
-    result[4] = 0;
-    result[5] = 2 / (top - bottom);
-    result[6] = 0;
-    result[7] = 0;
-    result[8] = 0;
-    result[9] = 0;
-    result[10] = -2 / (zFar - zNear);
-    result[11] = 0;
-    result[12] = -(right + left) / (right - left);
-    result[13] = -(top + bottom) / (top - bottom);
-    result[14] = -(zFar + zNear) / (zFar - zNear);
-    result[15] = 1;
 }
 
 

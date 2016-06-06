@@ -43,7 +43,7 @@ function generateIsland(map: Map, gen: MersenneTwister): void {
             if (altitude > 0) {
                 map.setCell(x + xOff, y + yOff, {
                     flags: CellFlag.Walkable,
-                    altitude: altitude
+                    altitude: altitude,
                 });
             } else {
                 map.setFlag(x + xOff, y + yOff, CellFlag.Water);
