@@ -18,6 +18,7 @@ interface Display {
     bg: Color[];
     reshape(): void;
     redraw(): void;
+    destroy(): void;
 }
 
 function makeDisplay(canvas: HTMLCanvasElement, fontImage: HTMLImageElement, onDraw: () => void): Display {
@@ -100,6 +101,9 @@ class GLCanvasDisplay implements Display {
     private atlasTexture: WebGLTexture;
     private atlasBuffer: Uint8Array;
 
+    private removeEventListeners: () => void;
+    private deleteGLHandles: () => void;
+
 
     constructor(private canvas: HTMLCanvasElement, private fontImage: HTMLImageElement, private onDraw: () => void) {
         this.fontImage = fontImage;
@@ -119,21 +123,29 @@ class GLCanvasDisplay implements Display {
             this.createContext();
         };
 
+        this.removeEventListeners = () => {
+            canvas.removeEventListener("webglcontextcreationerror", onError);
+            canvas.removeEventListener("webglcontextlost", onLost);
+            canvas.removeEventListener("webglcontextrestored", onRestore);
+        };
+
         canvas.addEventListener("webglcontextcreationerror", onError, false);
         canvas.addEventListener("webglcontextlost", onLost, false);
         canvas.addEventListener("webglcontextrestored", onRestore, false);
 
         this.createContext();
-
         if (!this.isValid()) {
-            canvas.removeEventListener("webglcontextcreationerror", onError);
-            canvas.removeEventListener("webglcontextlost", onLost);
-            canvas.removeEventListener("webglcontextrestored", onRestore);
+            this.removeEventListeners();
         }
     }
 
     public isValid(): boolean {
         return !!this.gl;
+    }
+
+    destroy(): void {
+        this.removeEventListeners();
+        this.deleteGLHandles();
     }
 
     reshape() {
@@ -276,6 +288,15 @@ class GLCanvasDisplay implements Display {
         gl.depthMask(false);
         checkGlError(gl, "depthMask");
 
+        this.deleteGLHandles = () => {
+            gl.deleteProgram(shaderProgram);
+            gl.deleteShader(vertexShader);
+            gl.deleteShader(fragmentShader);
+            gl.deleteBuffer(vertexBuffer);
+            gl.deleteTexture(this.fontTexture);
+            gl.deleteTexture(this.atlasTexture);
+        };
+
         this.onReshape = () => {
             if (!this.isValid()) {
                 return;
@@ -387,6 +408,8 @@ class NormalCanvasDisplay implements Display {
         this.reshape();
     }
 
+    destroy(): void {
+    }
 
     reshape() {
         this.width = Math.ceil(this.canvas.width / this.charWidth);
