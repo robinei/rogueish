@@ -83,7 +83,6 @@ const FRAGMENT_SHADER_CODE = [
 ].join("\n");
 
 
-
 class GLCanvasDisplay implements Display {
     charWidth: number;
     charHeight: number;
@@ -139,13 +138,16 @@ class GLCanvasDisplay implements Display {
         }
     }
 
-    public isValid(): boolean {
+    isValid(): boolean {
         return !!this.gl;
     }
 
     destroy(): void {
-        this.removeEventListeners();
-        this.deleteGLHandles();
+        if (this.isValid()) {
+            this.removeEventListeners();
+            this.deleteGLHandles();
+            this.gl = undefined;
+        }
     }
 
     reshape(force: boolean) {
@@ -201,7 +203,7 @@ class GLCanvasDisplay implements Display {
             atlasBuffer[off + 3] = char[i]; // we sneak char code along with background color
         }
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width, height * 2, gl.RGBA, gl.UNSIGNED_BYTE, this.atlasBuffer);
-        checkGlError(gl, "texImage2D");
+        checkGlError(gl, "texSubImage2D");
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         checkGlError(gl, "drawArrays");
     }
@@ -253,27 +255,14 @@ class GLCanvasDisplay implements Display {
         gl.vertexAttribPointer(positionAttribute, 4, gl.FLOAT, false, 0, 0);
         checkGlError(gl, "vertexAttribPointer");
 
-        const makeTexture = (): WebGLTexture => {
-            const texture = gl.createTexture();
-            checkGlError(gl, "createTexture");
-            gl.bindTexture(gl.TEXTURE_2D, texture);
-            checkGlError(gl, "bindTexture");
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-            checkGlError(gl, "texParameteri");
-            return texture;
-        };
-
 
         gl.activeTexture(gl.TEXTURE0);
-        this.fontTexture = makeTexture();
+        this.fontTexture = makeTexture(gl);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.fontImage);
         checkGlError(gl, "texImage2D");
 
         gl.activeTexture(gl.TEXTURE1);
-        this.atlasTexture = makeTexture();
+        this.atlasTexture = makeTexture(gl);
 
         gl.uniform1i(fontTextureUniform, 0);
         checkGlError(gl, "uniform1f");
@@ -325,6 +314,7 @@ class GLCanvasDisplay implements Display {
         this.reshape(true);
     }
 }
+
 
 /**
  * Creates and compiles a shader.
@@ -379,6 +369,19 @@ function checkGlError(gl: WebGLRenderingContext, operation: string): void {
         console.log(msg);
         throw new Error(msg);
     }
+}
+
+function makeTexture(gl: WebGLRenderingContext): WebGLTexture {
+    const texture = gl.createTexture();
+    checkGlError(gl, "createTexture");
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    checkGlError(gl, "bindTexture");
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    checkGlError(gl, "texParameteri");
+    return texture;
 }
 
 
