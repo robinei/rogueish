@@ -63,7 +63,7 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
 
                 let flags = map.getFlags(cellX, cellY);
 
-                // if ((flags & CellFlag.Discovered) === 0) { continue; }
+                if ((flags & CellFlag.Discovered) === 0) { continue; }
 
                 let charCode = 250; // centered dot
                 let bgColor = colors.black;
@@ -120,7 +120,7 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
         const playerY = player.y - mapDrawer.corner.y;
         if (playerX >= 0 && playerY >= 0 && playerX < width && playerY < height) {
             const i = playerY * width + playerX;
-            char[i] = 1;
+            char[i] = "@".charCodeAt(0);;
             fg[i] = colors.white;
         }
 
