@@ -1,7 +1,7 @@
 // adapted from: http://www.roguebasin.com/index.php?title=Cellular_Automata_Method_for_Generating_Random_Cave-Like_Levels
 
 import { Map, CellFlag } from "../map";
-import { stdGen } from "../mtrand";
+import { MersenneTwister } from "../mtrand";
 import { ensureContiguous } from "./util";
 
 export {
@@ -10,7 +10,7 @@ export {
 
 type IterRule = (x: number, y: number) => boolean;
 
-function generateCave(map: Map): void {
+function generateCave(map: Map, gen: MersenneTwister): void {
     const { width, height, flags } = map;
     const cellCount = width * height;
 
@@ -29,7 +29,7 @@ function generateCave(map: Map): void {
     }
 
     const reachable = ensureContiguous(
-        stdGen, width, height, 0.2, doGenerate,
+        gen, width, height, 0.2, doGenerate,
         (x, y) => !walls[y * width + x]
     );
 
@@ -52,7 +52,7 @@ function generateCave(map: Map): void {
     function doGenerate() {
         for (let y = 1; y < height - 1; ++y) {
             for (let x = 1; x < width - 1; ++x) {
-                walls[y * width + x] = stdGen.rnd() < 0.55;
+                walls[y * width + x] = gen.rnd() < 0.55;
             }
         }
 
@@ -98,12 +98,12 @@ function generateCave(map: Map): void {
 
         const superRule: IterRule = (x, y) => rules[cellRules[y * width + x]](x, y);
 
-        const iters = stdGen.intRange(1, 4);
+        const iters = gen.intRange(1, 4);
         for (let i = 0; i < iters; ++i) {
             for (let r = 0; r < 3; ++r) {
-                pointsX[r] = stdGen.intRange(0, width);
-                pointsY[r] = stdGen.intRange(0, height);
-                pointRules[r] = stdGen.intRange(0, rules.length);
+                pointsX[r] = gen.intRange(0, width);
+                pointsY[r] = gen.intRange(0, height);
+                pointRules[r] = gen.intRange(0, rules.length);
             }
 
             for (let y = 1; y < height - 1; ++y) {
@@ -112,7 +112,7 @@ function generateCave(map: Map): void {
                 }
             }
 
-            const ruleiters = stdGen.intRange(1, 5);
+            const ruleiters = gen.intRange(1, 5);
             for (let j = 0; j < ruleiters; ++j) {
                 iterate(superRule);
             }

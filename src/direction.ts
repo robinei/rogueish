@@ -1,5 +1,5 @@
 
-export enum Direction {
+export const enum Direction {
     North,
     NorthEast,
     East,

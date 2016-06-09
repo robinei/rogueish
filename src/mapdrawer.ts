@@ -16,7 +16,6 @@ export {
 interface MapDrawer {
     corner: Vec2;
     cursorPos: Vec2;
-    pathOrigin: Vec2;
     canvasCoordToWorldTileCoord(canvasX: number, canvasY: number): Vec2;
     canvasCoordToScreenTileCoord(canvasX: number, canvasY: number): Vec2;
     canvasCoordForWorldTileCoord(x: number, y: number): Vec2;
@@ -28,7 +27,6 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
     const mapDrawer: MapDrawer = {
         corner: new Vec2(0, 0),
         cursorPos: undefined,
-        pathOrigin: undefined,
         canvasCoordToWorldTileCoord,
         canvasCoordToScreenTileCoord,
         canvasCoordForWorldTileCoord,
@@ -104,12 +102,8 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
             }
         }
 
-        if (!mapDrawer.cursorPos) {
-            return;
-        }
-
-        /*if (mapDrawer.pathOrigin) {
-            const path = map.calcPath(mapDrawer.pathOrigin, mapDrawer.cursorPos);
+        if (mapDrawer.cursorPos) {
+            const path = map.calcPath(player.position, mapDrawer.cursorPos);
             if (path) {
                 for (let p of path) {
                     const outX = p.x - mapDrawer.corner.x;
@@ -120,41 +114,24 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
                     }
                 }
             }
-        }*/
+        }
 
-        const cursorX = mapDrawer.cursorPos.x - mapDrawer.corner.x;
-        const cursorY = mapDrawer.cursorPos.y - mapDrawer.corner.y;
-        if (cursorX >= 0 && cursorY >= 0 && cursorX < width && cursorY < height) {
-            const i = cursorY * width + cursorX;
+        const playerX = player.x - mapDrawer.corner.x;
+        const playerY = player.y - mapDrawer.corner.y;
+        if (playerX >= 0 && playerY >= 0 && playerX < width && playerY < height) {
+            const i = playerY * width + playerX;
             char[i] = 1;
             fg[i] = colors.white;
-
-            /*const floodColor = makeColor(16, 16, 16);
-            const visited = [false];
-            visited.length = map.width * map.height;
-            floodFill(
-                mapDrawer.cursorPos.x, mapDrawer.cursorPos.y,
-                map.width, map.height,
-                (x, y) => map.isWalkable(x, y) && !visited[y * map.width + x],
-                (x, y) => {
-                    visited[y * map.width + x] = true;
-                    const outX = x - mapDrawer.corner.x;
-                    const outY = y - mapDrawer.corner.y;
-                    if (outX >= 0 && outY >= 0 && outX < width && outY < height) {
-                        bg[outY * width + outX] = floodColor;
-                    }
-                }
-            );*/
         }
 
         fieldOfView(
-            mapDrawer.cursorPos.x, mapDrawer.cursorPos.y, 13,
+            player.x, player.y, 13,
             (x, y) => {
                 if (!map.isWalkable(x, y)) {
                     return;
                 }
-                const dx = x - mapDrawer.cursorPos.x;
-                const dy = y - mapDrawer.cursorPos.y;
+                const dx = x - player.x;
+                const dy = y - player.y;
                 const d = Math.min(10, Math.sqrt(dx * dx + dy * dy));
                 const t = (1 - (d / 10)) * 0.5;
                 const outX = x - mapDrawer.corner.x;
