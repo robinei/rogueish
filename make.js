@@ -28,7 +28,7 @@ function build() {
         fs.unlinkSync("build/" + items[i]);
     }
 
-    var almondData = fs.readFileSync("almond.js").toString();
+    var almondData = fs.readFileSync("data/almond.js").toString();
     var bundleData = fs.readFileSync("bundle.js").toString();
     var resultBundleData = [
         almondData,
