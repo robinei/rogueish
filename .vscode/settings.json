@@ -8,8 +8,8 @@
         "**/*.js": { "when": "$(basename).ts" },
         "**/*.js.map": { "when": "$(basename).ts" },
         "build/": true,
-        "bundle.js": true,
-        "bundle.js.map": true,
+        "data/bundle.js": true,
+        "data/bundle.js.map": true,
         "compiler.jar": true
 	}
 }

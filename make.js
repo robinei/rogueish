@@ -29,7 +29,7 @@ function build() {
     }
 
     var almondData = fs.readFileSync("data/almond.js").toString();
-    var bundleData = fs.readFileSync("bundle.js").toString();
+    var bundleData = fs.readFileSync("data/bundle.js").toString();
     var resultBundleData = [
         almondData,
         bundleData,
@@ -43,6 +43,7 @@ function build() {
 
     indexData = indexData.replace(/<script.*almond.js.*script>/, "");
     indexData = indexData.replace(/<script.*require.*script>/, "");
+    indexData = indexData.replace(new RegExp('<script src="data/bundle.js"></script>'), '<script src="bundle.js"></script>');
     fs.writeFileSync("build/index.html", indexData);
 }
 

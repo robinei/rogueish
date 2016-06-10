@@ -1,5 +1,5 @@
 /data/chrome_root/
 /build/
-/bundle.js
-/bundle.js.map
+/data/bundle.js
+/data/bundle.js.map
 

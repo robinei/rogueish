@@ -7,6 +7,6 @@
         "noFallthroughCasesInSwitch": true,
         "forceConsistentCasingInFileNames": true,
         "sourceMap": true,
-        "outFile": "bundle.js"
+        "outFile": "data/bundle.js"
     }
 }
