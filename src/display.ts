@@ -22,18 +22,13 @@ interface Display {
 }
 
 function makeDisplay(canvas: HTMLCanvasElement, fontImage: HTMLImageElement, onDraw: () => void): Display {
-    try {
-        const display = new GLCanvasDisplay(canvas, fontImage, onDraw);
-        if (display.isValid()) {
-            console.log("Using WebGL display.");
-            return display;
-        } else {
-            console.log("WebGL not supported! Using regular canvas display.");
-            return new NormalCanvasDisplay(canvas, fontImage, onDraw);
-        }
-    } catch (error) {
-        console.log("Error creating WebGL display: " + error);
-        return undefined;
+    const display = new GLCanvasDisplay(canvas, fontImage, onDraw);
+    if (display.isValid()) {
+        console.log("Using WebGL display.");
+        return display;
+    } else {
+        console.log("WebGL not supported! Using regular canvas display.");
+        return new NormalCanvasDisplay(canvas, fontImage, onDraw);
     }
 }
 
@@ -93,7 +88,7 @@ class GLCanvasDisplay implements Display {
     fg = [colors.white];
     bg = [colors.black];
 
-    private gl: WebGLRenderingContext;
+    private gl: WebGLRenderingContext | undefined;
     private onReshape: () => void;
 
     private fontTexture: WebGLTexture;
@@ -175,10 +170,10 @@ class GLCanvasDisplay implements Display {
     }
 
     draw() {
-        if (!this.isValid()) {
+        const { count, width, height, char, fg, bg, gl, atlasBuffer } = this;
+        if (!gl) {
             return;
         }
-        const { count, width, height, char, fg, bg, gl, atlasBuffer } = this;
 
         for (let i = 0; i < count; ++i) {
             char[i] = 0;
@@ -327,6 +322,9 @@ class GLCanvasDisplay implements Display {
  */
 function compileShader(gl: WebGLRenderingContext, shaderSource: string, shaderType: number): WebGLShader {
     const shader = gl.createShader(shaderType);
+    if (!shader) {
+        throw new Error("error creating shader");
+    }
     gl.shaderSource(shader, shaderSource);
     gl.compileShader(shader);
     const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
@@ -346,6 +344,9 @@ function compileShader(gl: WebGLRenderingContext, shaderSource: string, shaderTy
  */
 function createProgram(gl: WebGLRenderingContext, vertexShader: WebGLShader, fragmentShader: WebGLShader): WebGLProgram {
     const program = gl.createProgram();
+    if (!program) {
+        throw new Error("error creating program");
+    }
     gl.attachShader(program, vertexShader);
     gl.attachShader(program, fragmentShader);
     gl.linkProgram(program);
@@ -373,6 +374,9 @@ function checkGlError(gl: WebGLRenderingContext, operation: string): void {
 
 function makeTexture(gl: WebGLRenderingContext): WebGLTexture {
     const texture = gl.createTexture();
+    if (!texture) {
+        throw new Error("error creating texture");
+    }
     checkGlError(gl, "createTexture");
     gl.bindTexture(gl.TEXTURE_2D, texture);
     checkGlError(gl, "bindTexture");
@@ -412,7 +416,11 @@ class NormalCanvasDisplay implements Display {
 
 
     constructor(private canvas: HTMLCanvasElement, private fontImage: HTMLImageElement, private onDraw: () => void) {
-        this.context = canvas.getContext("2d");
+        const context = canvas.getContext("2d");
+        if (!context) {
+            throw new Error("error getting context");
+        }
+        this.context = context;
         this.charWidth = ~~(fontImage.naturalWidth / 16);
         this.charHeight = ~~(fontImage.naturalHeight / 16);
         this.reshape(true);
@@ -465,7 +473,7 @@ class NormalCanvasDisplay implements Display {
         this.onDraw();
 
         let dirtyCount = 0;
-        let currFillColor: Color = undefined;
+        let currFillColor: Color | undefined = undefined;
 
         context.globalCompositeOperation = "source-over";
 

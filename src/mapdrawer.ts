@@ -15,7 +15,7 @@ export {
 
 interface MapDrawer {
     corner: Vec2;
-    cursorPos: Vec2;
+    cursorPos: Vec2 | undefined;
     canvasCoordToWorldTileCoord(canvasX: number, canvasY: number): Vec2;
     canvasCoordToScreenTileCoord(canvasX: number, canvasY: number): Vec2;
     canvasCoordForWorldTileCoord(x: number, y: number): Vec2;
@@ -120,7 +120,7 @@ function makeMapDrawer(map: Map, display: Display): MapDrawer {
         const playerY = player.y - mapDrawer.corner.y;
         if (playerX >= 0 && playerY >= 0 && playerX < width && playerY < height) {
             const i = playerY * width + playerX;
-            char[i] = "@".charCodeAt(0);;
+            char[i] = "@".charCodeAt(0);
             fg[i] = colors.white;
         }
 

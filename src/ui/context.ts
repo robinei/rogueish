@@ -1,6 +1,6 @@
 import { Display } from "../display";
 import { Color, colors } from "../color";
-
+/*
 export {
     UIContext,
 }
@@ -46,9 +46,9 @@ class UIContext {
         this.heights.pop();
     }
 
-    put(x: number, y: number, char: number, fgcolor: Color = colors.white, bgcolor: Color = colors.black): void {
+    put(x: number, y: number, ch: number, fgcolor: Color = colors.white, bgcolor: Color = colors.black): void {
         const { char, fg, bg, width } = this.display;
-        const index = (this.y + y) * width +
+        const index = (this.y + y) * width + x;
     }
 
     fill(color: Color, x: number = 0, y: number = 0, width?: number, height?: number): void {
@@ -97,3 +97,4 @@ function test(ui: UIContext): void {
     ui.pop();
 }
 
+*/

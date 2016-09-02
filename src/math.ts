@@ -17,12 +17,13 @@ export class Vec2 {
         return Math.sqrt(dx * dx + dy * dy);
     }
 
-    get direction(): Direction {
+    get direction(): Direction | undefined {
         const dx = signum(this.x);
         const dy = signum(this.y);
         for (let i = 0; i < 8; ++i) {
             if (dirDX[i] === dx && dirDY[i] === dy) {
-                return i;
+                const dir: Direction = i;
+                return dir;
             }
         }
         return undefined;

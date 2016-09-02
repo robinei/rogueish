@@ -198,7 +198,7 @@ class Map {
         return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
     };
 
-    calcPath(start: Vec2, goal: Vec2): Vec2[] {
+    calcPath(start: Vec2, goal: Vec2): Vec2[] | undefined {
         const startIndex = start.y * this.width + start.x;
         const goalIndex = goal.y * this.width + goal.x;
         const pathIndexes = findPath(this.cellCount, startIndex, goalIndex, this.calcDistance, this.expandNode);
@@ -221,7 +221,7 @@ class Map {
         return new Vec2(x, y);
     }
 
-    randomWalkablePos(): Vec2 {
+    randomWalkablePos(): Vec2 | undefined {
         for (let tries = 0; tries < 1000; ++tries) {
             const x = ~~(this.width * stdGen.rnd());
             const y = ~~(this.height * stdGen.rnd());
@@ -320,12 +320,20 @@ function makeUndoStack(map: Map): UndoStack {
     }
 
     function popContext() {
-        stack.pop().undo();
+        const ctx = stack.pop();
+        if (!ctx) {
+            throw new Error("popped from empty stack");
+        }
+        ctx.undo();
     }
 
     function popAll() {
         while (stack.length > 0) {
-            stack.pop().undo();
+            const ctx = stack.pop();
+            if (!ctx) {
+                throw new Error("popped from empty stack");
+            }
+            ctx.undo();
         }
     }
 
@@ -356,7 +364,7 @@ function makeUndoStack(map: Map): UndoStack {
     });
 
     let currDistance = -1;
-    let currBucket: AreaPos[] = undefined;
+    let currBucket: AreaPos[] | undefined = undefined;
     for (let i = 0; i < areaPositionsByDistance.length; ++i) {
         const pos = areaPositionsByDistance[i];
         const d = ~~(pos.distance);
@@ -366,6 +374,9 @@ function makeUndoStack(map: Map): UndoStack {
             }
             currBucket = [];
             currDistance = d;
+        }
+        if (currBucket === undefined) {
+            throw new Error("should not happen");
         }
         currBucket.push(pos);
     }

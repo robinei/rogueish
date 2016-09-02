@@ -70,7 +70,7 @@ class Entity {
 function makeEntity(flags: number = 0): EntityId {
     let id: EntityId;
     if (entityIdFreelist.length > 0) {
-        id = entityIdFreelist.pop();
+        id = entityIdFreelist.pop() || entityCounter++;
     } else {
         id = entityCounter++;
     }

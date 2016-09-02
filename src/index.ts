@@ -13,7 +13,7 @@ import { Direction } from "./direction";
 function readNumberSetting(name: string, defValue: number = 0): number {
     if (localStorage) {
         const val = localStorage.getItem(name);
-        if (val !== undefined) {
+        if (val) {
             const num = parseInt(val, 10);
             if (!isNaN(num)) {
                 return num;
@@ -70,7 +70,11 @@ function regenerateMap() {
     generateCave(map, stdGen);
     // generateIsland(map, stdGen);
 
-    player.position = map.randomWalkablePos();
+    const playerPos = map.randomWalkablePos();
+    if (!playerPos) {
+        throw new Error("unable to pick player pos");
+    }
+    player.position = playerPos;
     updateVisible();
 }
 
@@ -155,6 +159,9 @@ function onKeyDown(e: KeyboardEvent) {
 }
 
 function onMouseMove(e: MouseEvent) {
+    if (!mapDrawer.cursorPos) {
+        return;
+    }
     const pos = mapDrawer.canvasCoordToWorldTileCoord(e.clientX, e.clientY);
     if (pos.equals(mapDrawer.cursorPos)) {
         return;

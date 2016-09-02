@@ -15,7 +15,7 @@ class BinaryHeap<Value> {
     constructor(isValueLess: (a: Value, b: Value) => boolean,
                 setIndex?: (value: Value, index: number) => void) {
         // tslint:disable-next-line:no-invalid-this
-        this.isLess = function (i, j) { return isValueLess(this.heap[i], this.heap[j]); };
+        this.isLess = (i, j) => { return isValueLess(this.heap[i], this.heap[j]); };
         this.setIndex = setIndex || function () { };
     }
 
@@ -34,6 +34,9 @@ class BinaryHeap<Value> {
         const top = this.heap[0];
         this.setIndex(top, -1);
         const last = this.heap.pop();
+        if (last === undefined) {
+            throw new Error("popped from empty heap");
+        }
         if (this.heap.length > 0) {
             this.heap[0] = last;
             this.setIndex(last, 0);
@@ -118,7 +121,7 @@ function findPath(
     goal: Node,
     calcDistance: (a: Node, b: Node) => number,
     expandNode: (node: Node, result: Node[]) => number
-): Node[] {
+): Node[] | undefined {
     // setup the arrays
     const states = [NodeState.Virgin];
     const heuristics = [Number.MAX_VALUE];
