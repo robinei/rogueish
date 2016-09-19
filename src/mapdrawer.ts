@@ -4,7 +4,6 @@ import { Vec2 } from "./math";
 import { colors, makeColor, scaleColor, blendColors } from "./color";
 import { fieldOfView } from "./fov";
 import { player } from "./entity/player";
-// import { floodFill } from "./util";
 
 
 export {
