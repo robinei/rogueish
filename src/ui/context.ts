@@ -1,69 +1,108 @@
 import { Display } from "../display";
 import { Color, colors } from "../color";
-/*
+
 export {
     UIContext,
 }
 
 
+class Props {
+    public x: number;
+    public y: number;
+    public width: number;
+    public height: number;
+
+    public clipLeft: number;
+    public clipTop: number;
+    public clipRight: number;
+    public clipBottom: number;
+}
 
 class UIContext {
-    private xs: number[];
-    private ys: number[];
-    private widths: number[];
-    private heights: number[];
+    private stack: Props[] = [];
+    private top: Props;
 
     constructor(public display: Display) {
-        this.xs.push(0);
-        this.ys.push(0);
-        this.widths.push(display.width);
-        this.heights.push(display.height);
-    }
-
-    get x(): number {
-        return this.xs[this.xs.length - 1];
-    }
-    get y(): number {
-        return this.ys[this.ys.length - 1];
-    }
-    get width(): number {
-        return this.widths[this.widths.length - 1];
-    }
-    get height(): number {
-        return this.heights[this.heights.length - 1];
+        const top = this.top = new Props();
+        top.clipLeft = top.x = 0;
+        top.clipTop = top.y = 0;
+        top.clipRight = top.width = display.width;
+        top.clipBottom = top.height = display.height;
     }
 
     push(x: number, y: number, width: number, height: number): void {
-        this.xs.push(this.x + x);
-        this.ys.push(this.y + y);
-        this.widths.push(width);
-        this.heights.push(height);
+        const prevTop = this.top;
+        this.stack.push(prevTop);
+        const top = this.top = new Props();
+        top.clipLeft = top.x = prevTop.x + x;
+        top.clipTop = top.y = prevTop.y + y;
+        top.width = width;
+        top.height = height;
+        top.clipRight = top.clipLeft + width;
+        top.clipBottom = top.clipTop + height;
+        if (top.clipLeft < prevTop.clipLeft) {
+            top.clipLeft = prevTop.clipLeft;
+        }
+        if (top.clipTop < prevTop.clipTop) {
+            top.clipTop = prevTop.clipTop;
+        }
+        if (top.clipRight > prevTop.clipRight) {
+            top.clipRight = prevTop.clipRight;
+        }
+        if (top.clipBottom > prevTop.clipBottom) {
+            top.clipBottom = prevTop.clipBottom;
+        }
     }
+
     pop(): void {
-        this.xs.pop();
-        this.ys.pop();
-        this.widths.pop();
-        this.heights.pop();
+        const top = this.stack.pop();
+        if (!top) {
+            throw new Error("pop on empty stack");
+        }
+        this.top = top;
     }
 
     put(x: number, y: number, ch: number, fgcolor: Color = colors.white, bgcolor: Color = colors.black): void {
-        const { char, fg, bg, width } = this.display;
-        const index = (this.y + y) * width + x;
-    }
-
-    fill(color: Color, x: number = 0, y: number = 0, width?: number, height?: number): void {
-        if (width === undefined) {
-            width = this.width;
-        }
-        if (height === undefined) {
-            height = this.height;
+        const top = this.top;
+        x += top.x;
+        y += top.y;
+        if (x < top.clipLeft || y < top.clipTop || x >= top.clipRight || y >= top.clipBottom) {
+            return;
         }
         const { char, fg, bg } = this.display;
         const displayWidth = this.display.width;
-        const x0 = this.x + x;
-        const y0 = this.y + y;
-        const x1 = x0 + width;
-        const y1 = y0 + height;
+        const index = y * displayWidth + x;
+        char[index] = ch;
+        fg[index] = fgcolor;
+        bg[index] = bgcolor;
+    }
+
+    fill(color: Color, x: number = 0, y: number = 0, width?: number, height?: number): void {
+        const top = this.top;
+        if (width === undefined) {
+            width = top.width;
+        }
+        if (height === undefined) {
+            height = top.height;
+        }
+        const { char, fg, bg } = this.display;
+        const displayWidth = this.display.width;
+        let x0 = top.x + x;
+        let y0 = top.y + y;
+        let x1 = x0 + width;
+        let y1 = y0 + height;
+        if (x0 < top.clipLeft) {
+            x0 = top.clipLeft;
+        }
+        if (y0 < top.clipTop) {
+            y0 = top.clipTop;
+        }
+        if (x1 > top.clipRight) {
+            x1 = top.clipRight;
+        }
+        if (y1 < top.clipBottom) {
+            y1 = top.clipBottom;
+        }
         for (let j = y0; j < y1; ++j) {
             for (let i = x0; i < x1; ++i) {
                 const index = j * displayWidth + i;
@@ -74,21 +113,37 @@ class UIContext {
         }
     }
 
-    text(text: string, x: number = 0, y: number = 0, color: Color = colors.white): void {
+    text(text: string, x: number = 0, y: number = 0, fgcolor: Color = colors.white, bgcolor?: Color): void {
+        const top = this.top;
+        const y0 = top.y + y;
+        if (y0 < top.clipTop || y0 >= top.clipBottom) {
+            return;
+        }
+        let textIndex = 0;
+        let x0 = top.x + x;
+        if (x0 < top.clipLeft) {
+            x0 = top.clipLeft;
+            textIndex = x0 - (top.x + x);
+        }
+        let x1 = top.x + x + text.length;
+        if (x1 >= top.clipRight) {
+            x1 = top.clipRight;
+        }
+
         const { char, fg, bg } = this.display;
         const displayWidth = this.display.width;
-        const x0 = this.x + x;
-        const y0 = this.y + y;
-        for (let i = x0; i < x1; ++i) {
-            const index = j * displayWidth + i;
-            char[index] = 0;
-            fg[index] = colors.white;
-            bg[index] = color;
+        for (let i = x0; i < x1; ++i, ++textIndex) {
+            const index = y0 * displayWidth + i;
+            char[index] = text.charCodeAt(textIndex);
+            fg[index] = fgcolor;
+            if (bgcolor !== undefined) {
+                bg[index] = bgcolor;
+            }
         }
     }
 }
 
-
+/*
 function test(ui: UIContext): void {
     ui.push(0, 0, 15, ui.height);
     ui.fill(colors.black);
@@ -96,5 +151,4 @@ function test(ui: UIContext): void {
 
     ui.pop();
 }
-
 */

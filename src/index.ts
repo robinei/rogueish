@@ -8,6 +8,8 @@ import { generateCave } from "./mapgen/cave";
 // import { generateIsland } from "./mapgen/island";
 import { player } from "./entity/player";
 import { Direction } from "./direction";
+import { UIContext } from "./ui/context";
+import { colors } from "./color";
 
 
 function readNumberSetting(name: string, defValue: number = 0): number {
@@ -55,6 +57,7 @@ const fontImages = [
     document.getElementById("fontImage2") as HTMLImageElement,
 ];
 let display: Display;
+let ui: UIContext;
 let mapDrawer: MapDrawer;
 
 ensureImagesLoaded(fontImages, runApp);
@@ -95,6 +98,11 @@ function onDraw() {
     mapDrawer.corner.y = player.y - (display.height >>> 1);
     updateVisible();
     mapDrawer.draw();
+
+    ui.push(10, 10, 10, 10);
+    ui.fill(colors.red);
+    ui.text("hello");
+    ui.pop();
 }
 
 function recreateDisplay() {
@@ -102,6 +110,7 @@ function recreateDisplay() {
         display.destroy();
     }
     display = makeDisplay(canvas, fontImages[readNumberSetting("fontNum", 0)], onDraw);
+    ui = new UIContext(display);
     mapDrawer = makeMapDrawer(map, display);
 }
 
