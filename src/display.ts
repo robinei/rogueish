@@ -9,13 +9,13 @@ export {
 
 
 interface Display {
-    charWidth: number;
-    charHeight: number;
-    width: number;
-    height: number;
-    char: number[];
-    fg: Color[];
-    bg: Color[];
+    readonly charWidth: number;
+    readonly charHeight: number;
+    readonly width: number;
+    readonly height: number;
+    readonly char: number[];
+    readonly fg: Color[];
+    readonly bg: Color[];
     reshape(force: boolean): void;
     redraw(): void;
     destroy(): void;
@@ -79,14 +79,14 @@ const FRAGMENT_SHADER_CODE = [
 
 
 class GLCanvasDisplay implements Display {
-    charWidth: number;
-    charHeight: number;
+    readonly charWidth: number;
+    readonly charHeight: number;
     count = 0;
     width = 0;
     height = 0;
-    char = [0];
-    fg = [colors.white];
-    bg = [colors.black];
+    readonly char = [0];
+    readonly fg = [colors.white];
+    readonly bg = [colors.black];
 
     private gl: WebGLRenderingContext | undefined;
     private onReshape: () => void;
@@ -99,8 +99,11 @@ class GLCanvasDisplay implements Display {
     private deleteGLHandles: () => void;
 
 
-    constructor(private canvas: HTMLCanvasElement, private fontImage: HTMLImageElement, private onDraw: () => void) {
-        this.fontImage = fontImage;
+    constructor(
+        private readonly canvas: HTMLCanvasElement,
+        private readonly fontImage: HTMLImageElement,
+        private readonly onDraw: () => void
+    ) {
         this.charWidth = ~~(fontImage.naturalWidth / 16);
         this.charHeight = ~~(fontImage.naturalHeight / 16);
 
@@ -394,8 +397,8 @@ function makeTexture(gl: WebGLRenderingContext): WebGLTexture {
 
 
 class NormalCanvasDisplay implements Display {
-    charWidth: number;
-    charHeight: number;
+    readonly charWidth: number;
+    readonly charHeight: number;
     width = 0;
     height = 0;
     count = 0;
@@ -409,13 +412,17 @@ class NormalCanvasDisplay implements Display {
     private prevFg = [colors.white];
     private prevBg = [colors.black];
 
-    private dirty = [false];
+    private readonly dirty = [false];
     private allDirty = true;
 
-    private context: CanvasRenderingContext2D;
+    private readonly context: CanvasRenderingContext2D;
 
 
-    constructor(private canvas: HTMLCanvasElement, private fontImage: HTMLImageElement, private onDraw: () => void) {
+    constructor(
+        private readonly canvas: HTMLCanvasElement,
+        private readonly fontImage: HTMLImageElement,
+        private readonly onDraw: () => void
+    ) {
         const context = canvas.getContext("2d");
         if (!context) {
             throw new Error("error getting context");
