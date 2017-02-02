@@ -6,19 +6,25 @@ var child_process = require("child_process");
 var indexData = fs.readFileSync("index.html").toString();
 
 
-function genFont(imgId, fontPath) {
+function genFontTag(imgId, fontPath) {
     var fontData = fs.readFileSync(fontPath).toString("base64");
-    var imgTag = '<img id="' + imgId + '" style="display: none" src="data:image/png;base64,' + fontData + '">';
-    indexData = indexData.replace(new RegExp("<img.*" + imgId + ".*>"), imgTag);
+    return '<img id="' + imgId + '" style="display: none" src="data:image/png;base64,' + fontData + '">';
 }
 
-function genFonts() {
-    genFont("fontImage1", "data/cp437_12x12.png");
-    genFont("fontImage2", "data/cp437_8x16_fixedsys.png");
+function replaceFonts() {
+    console.log("Replacing index.html fonts...");
+    var fontData = [
+        "<!--BEGIN_FONTS-->",
+        genFontTag("fontImage1", "data/cp437_12x12.png"),
+        genFontTag("fontImage2", "data/cp437_8x16_fixedsys.png"),
+        "<!--END_FONTS-->"
+    ].join("\n");
+    indexData = indexData.replace(/<!--BEGIN_FONTS-->[\s\S]*<!--END_FONTS-->/, fontData);
     fs.writeFileSync("index.html", indexData);
 }
 
 function build() {
+    console.log("Clearing build/ directory...");
     try {
         fs.mkdirSync("build");
     } catch (e) {
@@ -28,6 +34,7 @@ function build() {
         fs.unlinkSync("build/" + items[i]);
     }
 
+    console.log("Concatenating build/temp.js...");
     var almondData = fs.readFileSync("data/almond.js").toString();
     var bundleData = fs.readFileSync("data/bundle.js").toString();
     var resultBundleData = [
@@ -38,12 +45,14 @@ function build() {
     ].join("\n");
     fs.writeFileSync("build/temp.js", resultBundleData);
 
+    console.log("Optimizing build/temp.js -> build/bundle.js...");
     child_process.execSync("java -jar data/compiler.jar --compilation_level ADVANCED_OPTIMIZATIONS --js build/temp.js --js_output_file build/bundle.js");
     fs.unlinkSync("build/temp.js");
 
-    indexData = indexData.replace(/<script.*almond.js.*script>/, "");
-    indexData = indexData.replace(/<script.*require.*script>/, "");
-    indexData = indexData.replace(new RegExp('<script src="data/bundle.js"></script>'), '<script src="bundle.js"></script>');
+    console.log("Writing modified build/index.html...");
+    indexData = indexData.replace(/<!--BEGIN_CODE-->[\s\S]*<!--END_CODE-->/, '<script src="bundle.js"></script>');
+    indexData = indexData.replace(/<!--[\s\S]*?-->/g, ""); // remove comments
+    indexData = indexData.replace(/^\s*[\r\n]/gm, ""); // remove empty lines
     fs.writeFileSync("build/index.html", indexData);
 }
 
@@ -68,12 +77,13 @@ function lint() {
 
 if (process.argv.length === 3 && process.argv[2] === "lint") {
     lint();
-} else if (process.argv.length === 3 && process.argv[2] === "genfonts") {
-    genFonts();
+} else if (process.argv.length === 3 && process.argv[2] === "fonts") {
+    replaceFonts();
 } else if (process.argv.length === 2) {
+    console.log("Compiling TypeScript code to data/bundle.js...");
     child_process.execSync("tsc");
-    genFonts();
+    replaceFonts();
     build();
 } else {
-    console.log("usage: make.js [lint|genfonts]");
+    console.log("usage: make.js [lint|fonts]");
 }
