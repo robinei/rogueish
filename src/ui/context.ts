@@ -62,29 +62,13 @@ class UIContext {
         this.top = top;
     }
 
-    put(x: number, y: number, ch: number, fgcolor: Color = colors.white, bgcolor: Color = colors.black): void {
+    fillTop(ch: number = 0, fgcolor: Color = colors.white, bgcolor: Color = colors.black): void {
         const top = this.top;
-        x += top.x;
-        y += top.y;
-        if (x < top.clipLeft || y < top.clipTop || x >= top.clipRight || y >= top.clipBottom) {
-            return;
-        }
-        const { char, fg, bg } = this.display;
-        const displayWidth = this.display.width;
-        const index = y * displayWidth + x;
-        char[index] = ch;
-        fg[index] = fgcolor;
-        bg[index] = bgcolor;
+        this.fill(0, 0, top.width, top.height, ch, fgcolor, bgcolor);
     }
 
-    fill(color: Color, x: number = 0, y: number = 0, width?: number, height?: number): void {
+    fill(x: number, y: number, width: number, height: number, ch: number = 0, fgcolor: Color = colors.white, bgcolor: Color = colors.black): void {
         const top = this.top;
-        if (width === undefined) {
-            width = top.width;
-        }
-        if (height === undefined) {
-            height = top.height;
-        }
         const { char, fg, bg } = this.display;
         const displayWidth = this.display.width;
         let x0 = top.x + x;
@@ -106,14 +90,14 @@ class UIContext {
         for (let j = y0; j < y1; ++j) {
             for (let i = x0; i < x1; ++i) {
                 const index = j * displayWidth + i;
-                char[index] = 0;
-                fg[index] = colors.white;
-                bg[index] = color;
+                char[index] = ch;
+                fg[index] = fgcolor;
+                bg[index] = bgcolor;
             }
         }
     }
 
-    text(text: string, x: number = 0, y: number = 0, fgcolor: Color = colors.white, bgcolor?: Color): void {
+    text(x: number, y: number, text: string, fgcolor: Color = colors.white, bgcolor?: Color): void {
         const top = this.top;
         const y0 = top.y + y;
         if (y0 < top.clipTop || y0 >= top.clipBottom) {
@@ -140,6 +124,21 @@ class UIContext {
                 bg[index] = bgcolor;
             }
         }
+    }
+
+    put(x: number, y: number, ch: number, fgcolor: Color = colors.white, bgcolor: Color = colors.black): void {
+        const top = this.top;
+        x += top.x;
+        y += top.y;
+        if (x < top.clipLeft || y < top.clipTop || x >= top.clipRight || y >= top.clipBottom) {
+            return;
+        }
+        const { char, fg, bg } = this.display;
+        const displayWidth = this.display.width;
+        const index = y * displayWidth + x;
+        char[index] = ch;
+        fg[index] = fgcolor;
+        bg[index] = bgcolor;
     }
 }
 

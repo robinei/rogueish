@@ -48,6 +48,8 @@ function ensureImagesLoaded(images: HTMLImageElement[], onAllLoaded: () => void)
 }
 
 
+document.addEventListener('contextmenu', event => event.preventDefault());
+
 const map = new Map(257, 257);
 player.map = map;
 
@@ -100,8 +102,8 @@ function onDraw() {
     mapDrawer.draw();
 
     ui.push(10, 10, 10, 10);
-    ui.fill(colors.red);
-    ui.text("hello");
+    ui.fillTop(0, colors.black, colors.red);
+    ui.text(0, 0, "hello");
     ui.pop();
 }
 

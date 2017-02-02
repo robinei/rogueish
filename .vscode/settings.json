@@ -9,7 +9,6 @@
         "**/*.js.map": { "when": "$(basename).ts" },
         "build/": true,
         "data/bundle.js": true,
-        "data/bundle.js.map": true,
-        "compiler.jar": true
+        "data/compiler.jar": true
 	}
 }
