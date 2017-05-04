@@ -6,6 +6,7 @@
             "type": "chrome",
             "request": "launch",
             "file": "${workspaceRoot}/index.html",
+            "runtimeExecutable": "chromium-dev",
             "runtimeArgs": [
                 "--new-window",
                 "--user-data-dir=${workspaceRoot}/data/chrome_root", //Can be any directory. Makes chrome load in a different directory so that it opens in a new instance.

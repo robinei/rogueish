@@ -1,182 +1,339 @@
 import { CellFlag, Map } from "./map";
-import { MapDrawer, makeMapDrawer } from "./mapdrawer";
+import { drawMap } from "./mapdrawer";
 import { Display, makeDisplay } from "./display";
 import { fieldOfView } from "./fov";
 import { stdGen } from "./mtrand";
-// import { generateMaze } from "./mapgen/maze";
+import { generateMaze } from "./mapgen/maze";
 import { generateCave } from "./mapgen/cave";
-// import { generateIsland } from "./mapgen/island";
+import { generateIsland } from "./mapgen/island";
 import { player } from "./entity/player";
 import { Direction } from "./direction";
 import { UIContext } from "./ui/context";
 import { colors } from "./color";
+import { Vec2 } from "./math";
 
 
-function readNumberSetting(name: string, defValue: number = 0): number {
-    if (localStorage) {
-        const val = localStorage.getItem(name);
-        if (val) {
-            const num = parseInt(val, 10);
-            if (!isNaN(num)) {
-                return num;
+
+class ContextManager {
+    private contexts: ModalContext[] = [];
+
+    constructor(private onChange: () => void) {
+    }
+
+    pop() {
+        this.contexts.pop();
+        this.onChange();
+    }
+
+    push(ctx: ModalContext) {
+        this.contexts.push(ctx);
+        this.onChange();
+    }
+
+    toggleContext(ctx: ModalContext) {
+        const index = this.contexts.indexOf(ctx);
+        if (index >= 0) {
+            this.contexts.splice(index, 1);
+        } else {
+            this.contexts.push(ctx);
+        }
+        this.onChange();
+    }
+
+    dispatchDraw(display: Display) {
+        for (const ctx of this.contexts) {
+            ctx.onDraw(display);
+        }
+    }
+
+    dispatchKeyDown(e: KeyboardEvent) {
+        let i = this.contexts.length - 1;
+        for (; i >= 0; --i) {
+            if (this.contexts[i].onKeyDown(e)) {
+                break;
             }
         }
     }
-    return defValue;
-}
 
-function writeNumberSetting(name: string, value: number): void {
-    if (localStorage) {
-        localStorage.setItem(name, value.toString(10));
+    dispatchClick(x: number, y: number) {
+        let i = this.contexts.length - 1;
+        for (; i >= 0; --i) {
+            if (this.contexts[i].onMouseClick(x, y)) {
+                break;
+            }
+        }
+    }
+
+    dispatchMouseMove(x: number, y: number) {
+        let i = this.contexts.length - 1;
+        for (; i >= 0; --i) {
+            if (this.contexts[i].onMouseMove(x, y)) {
+                break;
+            }
+        }
     }
 }
 
-function ensureImagesLoaded(images: HTMLImageElement[], onAllLoaded: () => void): void {
-    let loadedCount = 0;
-    for (let image of images) {
-        if (image.complete && image.naturalHeight > 0) {
-            handleLoaded();
+
+abstract class ModalContext {
+    protected constructor(protected contextManager: ContextManager) {
+    }
+
+    abstract onDraw(display: Display): void;
+
+    onKeyDown(e: KeyboardEvent): boolean {
+        return false;
+    }
+    onMouseMove(x: number, y: number): boolean {
+        return false;
+    }
+    onMouseClick(x: number, y: number): boolean {
+        return false;
+    }
+}
+
+
+
+
+class InventoryContext extends ModalContext {
+    onDraw(display: Display): void {
+        const ui = new UIContext(display);
+        ui.fill(10, 10, 10, 10, 0, colors.white, colors.red);
+    }
+    onKeyDown(e: KeyboardEvent): boolean {
+        if (e.keyCode === "i".charCodeAt(0) || e.keyCode === "I".charCodeAt(0)) {
+            this.contextManager.toggleContext(this);
+        }
+        return true;
+    }
+}
+
+
+
+
+class GameContext extends ModalContext {
+    private map: Map;
+    private inventorytContext: InventoryContext;
+
+    constructor(contextManager: ContextManager) {
+        super(contextManager);
+        this.map = new Map(257, 257);
+        player.map = this.map;
+        this.inventorytContext = new InventoryContext(contextManager);
+        this.regenerateMap();
+    }
+
+    regenerateMap() {
+        const { width, height, flags } = this.map;
+        for (let i = 0; i < width * height; ++i) {
+            flags[i] = 0;
+        }
+
+        generateCave(this.map, stdGen);
+        //generateIsland(this.map, stdGen);
+
+        const playerPos = this.map.randomWalkablePos();
+        if (!playerPos) {
+            throw new Error("unable to pick player pos");
+        }
+        player.position = playerPos;
+        this.updateVisible();
+    }
+
+    updateVisible() {
+        this.map.resetVisible();
+        fieldOfView(
+            player.x, player.y, 100,
+            (x, y) => {
+                this.map.setFlag(x, y, CellFlag.Visible | CellFlag.Discovered);
+            },
+            (x, y) => !this.map.isWalkable(x, y)
+        );
+    }
+
+    onDraw(display: Display): void {
+        this.updateVisible();
+        const corner = new Vec2(
+            player.x - (display.width >>> 1),
+            player.y - (display.height >>> 1)
+        );
+        drawMap(this.map, display, corner, new Vec2(0, 0));
+    }
+
+    onKeyDown(e: KeyboardEvent): boolean {
+        if (e.keyCode === 37) { // left
+            player.move(Direction.West);
+        } else if (e.keyCode === 38) { // up
+            player.move(Direction.North);
+        } else if (e.keyCode === 39) { // right
+            player.move(Direction.East);
+        } else if (e.keyCode === 40) { // down
+            player.move(Direction.South);
+        } else if (e.keyCode === "r".charCodeAt(0) || e.keyCode === "R".charCodeAt(0)) {
+            this.regenerateMap();
+        } else if (e.keyCode === "i".charCodeAt(0) || e.keyCode === "I".charCodeAt(0)) {
+            this.contextManager.toggleContext(this.inventorytContext);
         } else {
-            image.onload = handleLoaded;
+            return false;
         }
-    }
-    function handleLoaded() {
-        if (++loadedCount === images.length) {
-            onAllLoaded();
-        }
-    }
-}
-
-
-document.addEventListener('contextmenu', event => event.preventDefault());
-
-const map = new Map(257, 257);
-player.map = map;
-
-const canvas = document.getElementById("canvas") as HTMLCanvasElement;
-const fontImages = [
-    document.getElementById("fontImage1") as HTMLImageElement,
-    document.getElementById("fontImage2") as HTMLImageElement,
-];
-let display: Display;
-let ui: UIContext;
-let mapDrawer: MapDrawer;
-
-ensureImagesLoaded(fontImages, runApp);
-
-
-
-function regenerateMap() {
-    const { width, height, flags } = map;
-    for (let i = 0; i < width * height; ++i) {
-        flags[i] = 0;
+        return true;
     }
 
-    generateCave(map, stdGen);
-    // generateIsland(map, stdGen);
-
-    const playerPos = map.randomWalkablePos();
-    if (!playerPos) {
-        throw new Error("unable to pick player pos");
+    onMouseMove(x: number, y: number): boolean {
+        return false;
     }
-    player.position = playerPos;
-    updateVisible();
-}
 
-function updateVisible() {
-    map.resetVisible();
-    fieldOfView(
-        player.x, player.y, 100,
-        (x, y) => {
-            map.setFlag(x, y, CellFlag.Visible | CellFlag.Discovered);
-        },
-        (x, y) => !map.isWalkable(x, y)
-    );
-}
-
-
-function onDraw() {
-    mapDrawer.corner.x = player.x - (display.width >>> 1);
-    mapDrawer.corner.y = player.y - (display.height >>> 1);
-    updateVisible();
-    mapDrawer.draw();
-
-    ui.push(10, 10, 10, 10);
-    ui.fillTop(0, colors.black, colors.red);
-    ui.text(0, 0, "hello");
-    ui.pop();
-}
-
-function recreateDisplay() {
-    if (display) {
-        display.destroy();
-    }
-    display = makeDisplay(canvas, fontImages[readNumberSetting("fontNum", 0)], onDraw);
-    ui = new UIContext(display);
-    mapDrawer = makeMapDrawer(map, display);
-}
-
-function runApp() {
-    recreateDisplay();
-    regenerateMap();
-    window.addEventListener("resize", resizeCanvas);
-    document.addEventListener("keydown", onKeyDown);
-    document.addEventListener("mousemove", onMouseMove);
-    canvas.addEventListener("click", onClick);
-    resizeCanvas();
-}
-
-function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    display.reshape(true);
-}
-
-function onClick(e: MouseEvent) {
-    const p = mapDrawer.canvasCoordToWorldTileCoord(e.clientX, e.clientY);
-    mapDrawer.corner.x = p.x - ~~(0.5 * canvas.width / display.charWidth);
-    mapDrawer.corner.y = p.y - ~~(0.5 * canvas.height / display.charHeight);
-    display.redraw();
-
-    /*const gl = (display as any).gl;
-    if (gl) {
-        const ext = gl.getExtension('WEBGL_lose_context');
-        if (ext) {
-            ext.loseContext();
-            setTimeout(() => {
-                ext.restoreContext();
-            }, 200);
-        }
+    /*onMouseClick(x: number, y: number): boolean {
+        const p = this.mapDrawer.canvasCoordToWorldTileCoord(e.clientX, e.clientY);
+        this.mapDrawer.corner.x = p.x - ~~(0.5 * this.canvas.width / this.display.charWidth);
+        this.mapDrawer.corner.y = p.y - ~~(0.5 * this.canvas.height / this.display.charHeight);
+        this.display.redraw();
+        return true;
     }*/
 }
 
-function onKeyDown(e: KeyboardEvent) {
-    if (e.keyCode === 37) { // left
-        player.move(Direction.West);
-    } else if (e.keyCode === 38) { // up
-        player.move(Direction.North);
-    } else if (e.keyCode === 39) { // right
-        player.move(Direction.East);
-    } else if (e.keyCode === 40) { // down
-        player.move(Direction.South);
-    } else if (e.keyCode === "r".charCodeAt(0) || e.keyCode === "R".charCodeAt(0)) {
-        regenerateMap();
-    } else if (e.keyCode === "f".charCodeAt(0) || e.keyCode === "F".charCodeAt(0)) {
-        const fontNum = (readNumberSetting("fontNum", -1) + 1) % 2;
-        writeNumberSetting("fontNum", fontNum);
-        recreateDisplay();
-    }
-    display.redraw();
+
+/*
+function canvasCoordToWorldTileCoord(canvasX: number, canvasY: number): Vec2 {
+    return canvasCoordToScreenTileCoord(canvasX, canvasY).add(mapDrawer.corner);
 }
 
-function onMouseMove(e: MouseEvent) {
-    if (!mapDrawer.cursorPos) {
-        return;
-    }
-    const pos = mapDrawer.canvasCoordToWorldTileCoord(e.clientX, e.clientY);
-    if (pos.equals(mapDrawer.cursorPos)) {
-        return;
-    }
-    mapDrawer.cursorPos = pos;
-    display.redraw();
+function canvasCoordToScreenTileCoord(canvasX: number, canvasY: number): Vec2 {
+    const x = ~~(canvasX / display.charWidth);
+    const y = ~~(canvasY / display.charHeight);
+    return new Vec2(x, y);
 }
+
+function canvasCoordForWorldTileCoord(x: number, y: number): Vec2 {
+    return new Vec2((x - mapDrawer.corner.x) * display.charWidth, (y - mapDrawer.corner.y) * display.charHeight);
+}
+*/
+
+
+class Game {
+    private canvas: HTMLCanvasElement;
+    private fontImages: HTMLImageElement[];
+    private display: Display;
+    private contextManager: ContextManager;
+    private cursorCell = new Vec2(0, 0);
+
+    constructor() {
+        document.addEventListener('contextmenu', event => event.preventDefault());
+        this.canvas = document.getElementById("canvas") as HTMLCanvasElement;
+        this.fontImages = [
+            document.getElementById("fontImage1") as HTMLImageElement,
+            document.getElementById("fontImage2") as HTMLImageElement,
+        ];
+        this.contextManager = new ContextManager(() => this.display.redraw());
+    }
+
+    start = () => {
+        Game.ensureImagesLoaded(this.fontImages, this.runGame);
+    }
+
+    private runGame = (): void => {
+        this.recreateDisplay();
+        window.addEventListener("resize", this.resizeCanvas);
+        document.addEventListener("keydown", this.onKeyDown);
+        this.canvas.addEventListener("click", this.onClick);
+        document.addEventListener("mousemove", this.onMouseMove);
+        this.contextManager.push(new GameContext(this.contextManager));
+        this.display.redraw();
+    }
+
+    private recreateDisplay = () => {
+        if (this.display) {
+            this.display.destroy();
+        }
+        this.display = makeDisplay(
+            this.canvas,
+            this.fontImages[Game.readNumberSetting("fontNum", 0)],
+            () => this.contextManager.dispatchDraw(this.display)
+        );
+        this.resizeCanvas();
+    }
+
+    private resizeCanvas = () => {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+        this.display.reshape(true);
+    }
+
+    private onKeyDown = (e: KeyboardEvent) => {
+        this.contextManager.dispatchKeyDown(e);
+
+        if (e.keyCode === "f".charCodeAt(0) || e.keyCode === "F".charCodeAt(0)) {
+            const fontNum = (Game.readNumberSetting("fontNum", -1) + 1) % 2;
+            Game.writeNumberSetting("fontNum", fontNum);
+            this.recreateDisplay();
+        }
+
+        this.display.redraw();
+    }
+
+    private onClick = (e: MouseEvent) => {
+        const x = ~~(e.clientX / this.display.charWidth);
+        const y = ~~(e.clientY / this.display.charHeight);
+        this.contextManager.dispatchClick(x, y);
+        /*const gl = (this.display as any).gl;
+        if (gl) {
+            const ext = gl.getExtension('WEBGL_lose_context');
+            if (ext) {
+                ext.loseContext();
+                setTimeout(() => {
+                    ext.restoreContext();
+                }, 200);
+            }
+        }*/
+    }
+
+    private onMouseMove = (e: MouseEvent) => {
+        const x = ~~(e.clientX / this.display.charWidth);
+        const y = ~~(e.clientY / this.display.charHeight);
+        const cell = new Vec2(x, y);
+        if (this.cursorCell.distanceTo(cell) <= 0) {
+            return;
+        }
+        this.cursorCell = cell;
+        this.contextManager.dispatchMouseMove(x, y);
+        this.display.redraw();
+    }
+
+    private static readNumberSetting(name: string, defValue: number = 0): number {
+        if (localStorage) {
+            const val = localStorage.getItem(name);
+            if (val) {
+                const num = parseInt(val, 10);
+                if (!isNaN(num)) {
+                    return num;
+                }
+            }
+        }
+        return defValue;
+    }
+
+    private static writeNumberSetting(name: string, value: number): void {
+        if (localStorage) {
+            localStorage.setItem(name, value.toString(10));
+        }
+    }
+
+    private static ensureImagesLoaded(images: HTMLImageElement[], onAllLoaded: () => void): void {
+        let loadedCount = 0;
+        for (let image of images) {
+            if (image.complete && image.naturalHeight > 0) {
+                handleLoaded();
+            } else {
+                image.onload = handleLoaded;
+            }
+        }
+        function handleLoaded() {
+            if (++loadedCount === images.length) {
+                onAllLoaded();
+            }
+        }
+    }
+}
+
+
+new Game().start();

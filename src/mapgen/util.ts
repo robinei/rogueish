@@ -88,7 +88,8 @@ function floodFill(
     }
     const stack = [startY * width + startX];
     while (stack.length > 0) {
-        const index = stack.pop();
+        const index = stack.pop() as number;
+
         const ox = index % width;
         const y = ~~(index / width);
 
