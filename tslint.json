@@ -50,10 +50,7 @@
         ],
         "member-access": false,
         "member-ordering": [
-            true,
-            {
-                "order": "fields-first"
-            }
+            false
         ],
         "new-parens": true,
         "no-angle-bracket-type-assertion": false,

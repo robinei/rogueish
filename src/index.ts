@@ -130,7 +130,7 @@ class GameContext extends ModalContext {
         }
 
         generateCave(this.map, stdGen);
-        //generateIsland(this.map, stdGen);
+        // generateIsland(this.map, stdGen);
 
         const playerPos = this.map.randomWalkablePos();
         if (!playerPos) {
@@ -147,7 +147,7 @@ class GameContext extends ModalContext {
             (x, y) => {
                 this.map.setFlag(x, y, CellFlag.Visible | CellFlag.Discovered);
             },
-            (x, y) => !this.map.isWalkable(x, y)
+            (x, y) => !this.map.isWalkable(x, y),
         );
     }
 
@@ -155,7 +155,7 @@ class GameContext extends ModalContext {
         this.updateVisible();
         const corner = new Vec2(
             player.x - (display.width >>> 1),
-            player.y - (display.height >>> 1)
+            player.y - (display.height >>> 1),
         );
         drawMap(this.map, display, corner, new Vec2(0, 0));
     }
@@ -218,7 +218,7 @@ class Game {
     private cursorCell = new Vec2(0, 0);
 
     constructor() {
-        document.addEventListener('contextmenu', event => event.preventDefault());
+        document.addEventListener("contextmenu", event => event.preventDefault());
         this.canvas = document.getElementById("canvas") as HTMLCanvasElement;
         this.fontImages = [
             document.getElementById("fontImage1") as HTMLImageElement,
@@ -248,7 +248,7 @@ class Game {
         this.display = makeDisplay(
             this.canvas,
             this.fontImages[Game.readNumberSetting("fontNum", 0)],
-            () => this.contextManager.dispatchDraw(this.display)
+            () => this.contextManager.dispatchDraw(this.display),
         );
         this.resizeCanvas();
     }

@@ -7,7 +7,7 @@ export const enum Direction {
     South,
     SouthWest,
     West,
-    NorthWest
+    NorthWest,
 }
 
 

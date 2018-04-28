@@ -124,4 +124,4 @@ export {
     makeEntity,
     freeEntity,
     moveEntity,
-}
+};

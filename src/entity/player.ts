@@ -13,4 +13,4 @@ const player = new Player();
 export {
     Player,
     player,
-}
+};

@@ -3,7 +3,7 @@ export {
     findPath,
     NodeExpander,
     makeGridNodeExpander,
-}
+};
 
 
 class BinaryHeap<Value> {
@@ -120,7 +120,7 @@ function findPath(
     start: Node,
     goal: Node,
     calcDistance: (a: Node, b: Node) => number,
-    expandNode: (node: Node, result: Node[]) => number
+    expandNode: (node: Node, result: Node[]) => number,
 ): Node[] | undefined {
     // setup the arrays
     const states = [NodeState.Virgin];
@@ -140,7 +140,7 @@ function findPath(
     // unvisited node with the shortest distance from start
     const heap = new BinaryHeap<Node>(
         (a, b) => costs[a] + heuristics[a] < costs[b] + heuristics[b],
-        (n, i) => heapIndexes[n] = i
+        (n, i) => heapIndexes[n] = i,
     );
 
     const neighbours = [0, 0, 0, 0, 0, 0, 0, 0];
@@ -196,7 +196,7 @@ function makeGridNodeExpander(
     eightDirections: boolean,
     width: number,
     height: number,
-    isWalkable: (x: number, y: number) => boolean
+    isWalkable: (x: number, y: number) => boolean,
 ): NodeExpander {
     // coordinate deltas for children in all 8 or 4 directions, starting north going clockwise
     const diffX = eightDirections ? [ 0,  1, 1, 1, 0, -1, -1, -1] : [  0, 1, 0, -1];

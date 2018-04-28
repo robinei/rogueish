@@ -4,7 +4,7 @@ export {
     ensureContiguous,
     midpointDisplacement,
     floodFill,
-}
+};
 
 /**
  * Repeatedly calls doGenerate until it produces a contiguous area covering at least wantedFillThreshold
@@ -16,7 +16,7 @@ function ensureContiguous(
     height: number,
     wantedFillThreshold: number,
     doGenerate: () => void,
-    isMatch: (x: number, y: number) => boolean
+    isMatch: (x: number, y: number) => boolean,
 ): boolean[] {
     const reachable = [false];
     const size = width * height;
@@ -62,7 +62,7 @@ function ensureContiguous(
                 (x, y) => {
                     reachable[y * width + x] = true;
                     ++reachableCount;
-                }
+                },
             );
         }
         return reachableCount;
@@ -78,7 +78,7 @@ function floodFill(
     width: number,
     height: number,
     isUnvisitedMatch: (x: number, y: number) => boolean,
-    visit: (x: number, y: number) => void
+    visit: (x: number, y: number) => void,
 ): void {
     if (startX < 0 || startY < 0 || startX >= width || startY >= height) {
         return;

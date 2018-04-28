@@ -28,7 +28,7 @@ export {
     toStringColor,
     scaleColor,
     blendColors,
-}
+};
 
 
 interface Color extends Number {

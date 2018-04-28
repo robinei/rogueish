@@ -102,6 +102,6 @@ export function drawMap(map: Map, display: Display, corner: Vec2, cursorPos: Vec
                 bg[i] = blendColors(bg[i], color, t);
             }
         },
-        (x, y) => !map.isWalkable(x, y)
+        (x, y) => !map.isWalkable(x, y),
     );
 }

@@ -3,7 +3,7 @@ import { Color, colors } from "../color";
 
 export {
     UIContext,
-}
+};
 
 
 class Props {
@@ -67,7 +67,8 @@ class UIContext {
         this.fill(0, 0, top.width, top.height, ch, fgcolor, bgcolor);
     }
 
-    fill(x: number, y: number, width: number, height: number, ch: number = 0, fgcolor: Color = colors.white, bgcolor: Color = colors.black): void {
+    fill(x: number, y: number, width: number, height: number,
+         ch: number = 0, fgcolor: Color = colors.white, bgcolor: Color = colors.black): void {
         const top = this.top;
         const { char, fg, bg } = this.display;
         const displayWidth = this.display.width;

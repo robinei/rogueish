@@ -3,8 +3,8 @@ import { ensureContiguous, midpointDisplacement } from "./util";
 import { MersenneTwister } from "../mtrand";
 
 export {
-    generateIsland
-}
+    generateIsland,
+};
 
 
 const MIN_LAND_FRACTION = 0.2;
@@ -24,7 +24,7 @@ function generateIsland(map: Map, gen: MersenneTwister): void {
     // generate a big enough contigous island
     const reachable = ensureContiguous(
         gen, dim, dim, MIN_LAND_FRACTION, doGenerate,
-        (x, y) => heightmap[y * dim + x] > 0
+        (x, y) => heightmap[y * dim + x] > 0,
     );
 
     // Now mark everything not reachable as sea.

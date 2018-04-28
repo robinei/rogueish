@@ -2,7 +2,7 @@
 
 export {
     spiralPathFOV as fieldOfView,
-}
+};
 
 
 const MAX_RADIUS = 300;
@@ -156,7 +156,7 @@ function spiralPathFOV(
     visit: (x: number, y: number) => void,
     blocked: (x: number, y: number) => boolean,
     arcStart: number = 0.0,
-    arcEnd: number = 2.0 * Math.PI
+    arcEnd: number = 2.0 * Math.PI,
 ): void {
     if (radius >= MAX_RADIUS) {
         throw new Error("fov radius too large: " + radius);

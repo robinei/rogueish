@@ -6,7 +6,7 @@ import { ensureContiguous } from "./util";
 
 export {
     generateCave,
-}
+};
 
 type IterRule = (x: number, y: number) => boolean;
 
@@ -30,7 +30,7 @@ function generateCave(map: Map, gen: MersenneTwister): void {
 
     const reachable = ensureContiguous(
         gen, width, height, 0.2, doGenerate,
-        (x, y) => !walls[y * width + x]
+        (x, y) => !walls[y * width + x],
     );
 
     for (let i = 0; i < cellCount; ++i) {

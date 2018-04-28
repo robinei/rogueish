@@ -190,4 +190,4 @@ const stdGen = new MersenneTwister();
 export {
     MersenneTwister,
     stdGen,
-}
+};

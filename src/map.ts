@@ -14,7 +14,7 @@ export {
     UndoContext,
     makeUndoStack,
     makeUndoContext,
-}
+};
 
 
 const enum CellFlag {
@@ -115,7 +115,7 @@ class Map {
             return false;
         }
         return (this.flags[y * this.width + x] & CellFlag.Walkable) !== 0;
-    };
+    }
 
     isWall(x: number, y: number): boolean {
         if ((this.flags[y * this.width + x] & CellFlag.Walkable) === 0) {
@@ -196,7 +196,7 @@ class Map {
         const deltaY = by - ay;
 
         return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-    };
+    }
 
     calcPath(start: Vec2, goal: Vec2): Vec2[] | undefined {
         const startIndex = start.y * this.width + start.x;

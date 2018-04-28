@@ -6,7 +6,7 @@ import { shuffleArray } from "../util";
 
 export {
     generateMaze,
-}
+};
 
 
 const enum State {

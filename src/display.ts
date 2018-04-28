@@ -4,7 +4,7 @@ import { Color, colors, toStringColor } from "./color";
 export {
     Display,
     makeDisplay,
-}
+};
 
 
 
@@ -102,7 +102,7 @@ class GLCanvasDisplay implements Display {
     constructor(
         private readonly canvas: HTMLCanvasElement,
         private readonly fontImage: HTMLImageElement,
-        private readonly onDraw: () => void
+        private readonly onDraw: () => void,
     ) {
         this.charWidth = ~~(fontImage.naturalWidth / 16);
         this.charHeight = ~~(fontImage.naturalHeight / 16);
@@ -421,7 +421,7 @@ class NormalCanvasDisplay implements Display {
     constructor(
         private readonly canvas: HTMLCanvasElement,
         private readonly fontImage: HTMLImageElement,
-        private readonly onDraw: () => void
+        private readonly onDraw: () => void,
     ) {
         const context = canvas.getContext("2d");
         if (!context) {
