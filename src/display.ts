@@ -4,6 +4,7 @@ import { Color, colors, toStringColor } from "./color";
 export {
     Display,
     makeDisplay,
+    makeCanvasDisplay,
     makeNullDisplay,
 };
 
@@ -25,15 +26,20 @@ interface Display {
 function makeDisplay(canvas: HTMLCanvasElement, fontImage: HTMLImageElement, onDraw: () => void): Display {
     const display = new GLCanvasDisplay(canvas, fontImage, onDraw);
     if (display.isValid()) {
-        console.log("Using WebGL display.");
+        console.log("Creating WebGL display.");
         return display;
     } else {
-        console.log("WebGL not supported! Using regular canvas display.");
-        return new NormalCanvasDisplay(canvas, fontImage, onDraw);
+        console.log("WebGL not supported!");
+        return makeCanvasDisplay(canvas, fontImage, onDraw);
     }
 }
 
-function makeNullDisplay() {
+function makeCanvasDisplay(canvas: HTMLCanvasElement, fontImage: HTMLImageElement, onDraw: () => void): Display {
+    console.log("Creating regular canvas display.");
+    return new NormalCanvasDisplay(canvas, fontImage, onDraw);
+}
+
+function makeNullDisplay(): Display {
     return {
         charWidth: 0,
         charHeight: 0,
@@ -92,7 +98,34 @@ const FRAGMENT_SHADER_CODE = [
 ].join("\n");
 
 
-class GLCanvasDisplay implements Display {
+abstract class BaseDisplay {
+    private wantRedraw: boolean = false;
+    private redrawScheduled: boolean = false;
+
+    abstract draw(): void;
+
+    redraw() {
+        if (this.redrawScheduled) {
+            this.wantRedraw = true;
+        } else {
+            this.scheduleRedraw();
+        }
+    }
+
+    scheduleRedraw() {
+        this.redrawScheduled = true;
+        window.requestAnimationFrame(() => {
+            this.redrawScheduled = false;
+            this.draw();
+            if (this.wantRedraw) {
+                this.wantRedraw = false;
+                this.scheduleRedraw();
+            }
+        });
+    }
+}
+
+class GLCanvasDisplay extends BaseDisplay implements Display {
     readonly charWidth: number;
     readonly charHeight: number;
     count = 0;
@@ -118,6 +151,7 @@ class GLCanvasDisplay implements Display {
         private readonly fontImage: HTMLImageElement,
         private readonly onDraw: () => void,
     ) {
+        super();
         this.charWidth = ~~(fontImage.naturalWidth / 16);
         this.charHeight = ~~(fontImage.naturalHeight / 16);
 
@@ -185,10 +219,6 @@ class GLCanvasDisplay implements Display {
         }
 
         this.redraw();
-    }
-
-    redraw() {
-        window.requestAnimationFrame(() => this.draw());
     }
 
     draw() {
@@ -417,7 +447,7 @@ function makeTexture(gl: WebGLRenderingContext): WebGLTexture {
 
 
 
-class NormalCanvasDisplay implements Display {
+class NormalCanvasDisplay extends BaseDisplay implements Display {
     readonly charWidth: number;
     readonly charHeight: number;
     width = 0;
@@ -444,6 +474,7 @@ class NormalCanvasDisplay implements Display {
         private readonly fontImage: HTMLImageElement,
         private readonly onDraw: () => void,
     ) {
+        super();
         const context = canvas.getContext("2d");
         if (!context) {
             throw new Error("error getting context");
@@ -475,10 +506,6 @@ class NormalCanvasDisplay implements Display {
         this.allDirty = true;
 
         this.redraw();
-    }
-
-    redraw() {
-        window.requestAnimationFrame(() => this.draw());
     }
 
     draw() {

@@ -1,6 +1,6 @@
 import { CellFlag, Map } from "./map";
 import { drawMap } from "./mapdrawer";
-import { Display, makeDisplay, makeNullDisplay } from "./display";
+import { Display, makeDisplay, makeCanvasDisplay, makeNullDisplay } from "./display";
 import { fieldOfView } from "./fov";
 import { stdGen } from "./mtrand";
 import { generateMaze } from "./mapgen/maze";
@@ -246,7 +246,8 @@ class Game {
         if (this.display) {
             this.display.destroy();
         }
-        this.display = makeDisplay(
+        const factory = Game.readNumberSetting("forceCanvasDisplay", 0) ? makeCanvasDisplay : makeDisplay;
+        this.display = factory(
             this.canvas,
             this.fontImages[Game.readNumberSetting("fontNum", 0)],
             () => this.contextManager.dispatchDraw(this.display),
@@ -261,6 +262,13 @@ class Game {
     }
 
     private onKeyDown = (e: KeyboardEvent) => {
+        if (e.keyCode === "c".charCodeAt(0) || e.keyCode === "C".charCodeAt(0)) {
+            const forceCanvasDisplay = Game.readNumberSetting("forceCanvasDisplay", 0) ? 0 : 1;
+            Game.writeNumberSetting("forceCanvasDisplay", forceCanvasDisplay);
+            location.reload();
+            return;
+        }
+
         this.contextManager.dispatchKeyDown(e);
 
         if (e.keyCode === "f".charCodeAt(0) || e.keyCode === "F".charCodeAt(0)) {
