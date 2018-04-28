@@ -7,15 +7,16 @@ export {
 
 
 class Props {
-    public x: number;
-    public y: number;
-    public width: number;
-    public height: number;
-
-    public clipLeft: number;
-    public clipTop: number;
-    public clipRight: number;
-    public clipBottom: number;
+    constructor(
+        public x: number,
+        public y: number,
+        public width: number,
+        public height: number,
+        public clipLeft: number,
+        public clipTop: number,
+        public clipRight: number,
+        public clipBottom: number,
+    ) {}
 }
 
 class UIContext {
@@ -23,23 +24,21 @@ class UIContext {
     private top: Props;
 
     constructor(public display: Display) {
-        const top = this.top = new Props();
-        top.clipLeft = top.x = 0;
-        top.clipTop = top.y = 0;
-        top.clipRight = top.width = display.width;
-        top.clipBottom = top.height = display.height;
+        const top = this.top = new Props(
+            0, 0, display.width, display.height,
+            0, 0, display.width, display.height,
+        );
     }
 
     push(x: number, y: number, width: number, height: number): void {
         const prevTop = this.top;
         this.stack.push(prevTop);
-        const top = this.top = new Props();
-        top.clipLeft = top.x = prevTop.x + x;
-        top.clipTop = top.y = prevTop.y + y;
-        top.width = width;
-        top.height = height;
-        top.clipRight = top.clipLeft + width;
-        top.clipBottom = top.clipTop + height;
+        const newX = prevTop.y + y;
+        const newY = prevTop.y + y;
+        const top = this.top = new Props(
+            newX, newY, width, height,
+            newX, newY, newX + width, newY + height,
+        );
         if (top.clipLeft < prevTop.clipLeft) {
             top.clipLeft = prevTop.clipLeft;
         }

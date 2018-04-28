@@ -1,6 +1,6 @@
 import { CellFlag, Map } from "./map";
 import { drawMap } from "./mapdrawer";
-import { Display, makeDisplay } from "./display";
+import { Display, makeDisplay, makeNullDisplay } from "./display";
 import { fieldOfView } from "./fov";
 import { stdGen } from "./mtrand";
 import { generateMaze } from "./mapgen/maze";
@@ -224,6 +224,7 @@ class Game {
             document.getElementById("fontImage1") as HTMLImageElement,
             document.getElementById("fontImage2") as HTMLImageElement,
         ];
+        this.display = makeNullDisplay();
         this.contextManager = new ContextManager(() => this.display.redraw());
     }
 

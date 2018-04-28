@@ -4,6 +4,7 @@ import { Color, colors, toStringColor } from "./color";
 export {
     Display,
     makeDisplay,
+    makeNullDisplay,
 };
 
 
@@ -32,7 +33,20 @@ function makeDisplay(canvas: HTMLCanvasElement, fontImage: HTMLImageElement, onD
     }
 }
 
-
+function makeNullDisplay() {
+    return {
+        charWidth: 0,
+        charHeight: 0,
+        width: 0,
+        height: 0,
+        char: [],
+        fg: [],
+        bg: [],
+        reshape: (force: boolean) => {},
+        redraw: () => {},
+        destroy: () => {},
+    };
+}
 
 
 
@@ -89,14 +103,14 @@ class GLCanvasDisplay implements Display {
     readonly bg = [colors.black];
 
     private gl: WebGLRenderingContext | undefined;
-    private onReshape: () => void;
+    private onReshape?: () => void;
 
-    private fontTexture: WebGLTexture;
-    private atlasTexture: WebGLTexture;
-    private atlasBuffer: Uint8Array;
+    private fontTexture?: WebGLTexture;
+    private atlasTexture?: WebGLTexture;
+    private atlasBuffer?: Uint8Array;
 
     private removeEventListeners: () => void;
-    private deleteGLHandles: () => void;
+    private deleteGLHandles?: () => void;
 
 
     constructor(
@@ -121,16 +135,17 @@ class GLCanvasDisplay implements Display {
         };
 
         this.removeEventListeners = () => {
-            canvas.removeEventListener("webglcontextcreationerror", onError);
-            canvas.removeEventListener("webglcontextlost", onLost);
-            canvas.removeEventListener("webglcontextrestored", onRestore);
+            canvas.removeEventListener("webglcontextcreationerror", onError as EventListener);
+            canvas.removeEventListener("webglcontextlost", onLost as EventListener);
+            canvas.removeEventListener("webglcontextrestored", onRestore as EventListener);
         };
 
-        canvas.addEventListener("webglcontextcreationerror", onError, false);
-        canvas.addEventListener("webglcontextlost", onLost, false);
-        canvas.addEventListener("webglcontextrestored", onRestore, false);
+        canvas.addEventListener("webglcontextcreationerror", onError as EventListener, false);
+        canvas.addEventListener("webglcontextlost", onLost as EventListener, false);
+        canvas.addEventListener("webglcontextrestored", onRestore as EventListener, false);
 
         this.createContext();
+
         if (!this.isValid()) {
             this.removeEventListeners();
         }
@@ -143,7 +158,9 @@ class GLCanvasDisplay implements Display {
     destroy(): void {
         if (this.isValid()) {
             this.removeEventListeners();
-            this.deleteGLHandles();
+            if (this.deleteGLHandles) {
+                this.deleteGLHandles();
+            }
             this.gl = undefined;
         }
     }
@@ -163,7 +180,9 @@ class GLCanvasDisplay implements Display {
         this.fg.length = count;
         this.bg.length = count;
 
-        this.onReshape();
+        if (this.onReshape) {
+            this.onReshape();
+        }
 
         this.redraw();
     }
@@ -174,7 +193,7 @@ class GLCanvasDisplay implements Display {
 
     draw() {
         const { count, width, height, char, fg, bg, gl, atlasBuffer } = this;
-        if (!gl) {
+        if (!gl || !atlasBuffer) {
             return;
         }
 
@@ -200,7 +219,7 @@ class GLCanvasDisplay implements Display {
             atlasBuffer[off + 2] = (<any>bgc >>> 8) & 255;
             atlasBuffer[off + 3] = char[i]; // we sneak char code along with background color
         }
-        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width, height * 2, gl.RGBA, gl.UNSIGNED_BYTE, this.atlasBuffer);
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width, height * 2, gl.RGBA, gl.UNSIGNED_BYTE, atlasBuffer);
         checkGlError(gl, "texSubImage2D");
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         checkGlError(gl, "drawArrays");
@@ -255,12 +274,12 @@ class GLCanvasDisplay implements Display {
 
 
         gl.activeTexture(gl.TEXTURE0);
-        this.fontTexture = makeTexture(gl);
+        const fontTexture = this.fontTexture = makeTexture(gl);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.fontImage);
         checkGlError(gl, "texImage2D");
 
         gl.activeTexture(gl.TEXTURE1);
-        this.atlasTexture = makeTexture(gl);
+        const atlasTexture = this.atlasTexture = makeTexture(gl);
 
         gl.uniform1i(fontTextureUniform, 0);
         checkGlError(gl, "uniform1f");
@@ -285,8 +304,10 @@ class GLCanvasDisplay implements Display {
             gl.deleteShader(vertexShader);
             gl.deleteShader(fragmentShader);
             gl.deleteBuffer(vertexBuffer);
-            gl.deleteTexture(this.fontTexture);
-            gl.deleteTexture(this.atlasTexture);
+            gl.deleteTexture(fontTexture);
+            gl.deleteTexture(atlasTexture);
+            this.fontTexture = undefined;
+            this.atlasTexture = undefined;
         };
 
         this.onReshape = () => {

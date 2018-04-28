@@ -2,10 +2,8 @@
     "compilerOptions": {
         "module": "amd",
         "target": "es5",
-        "strictNullChecks": true,
-        "noImplicitAny": true,
+        "strict": true,
         "noImplicitReturns": true,
-        "noImplicitThis": true,
         "noFallthroughCasesInSwitch": true,
         "forceConsistentCasingInFileNames": true,
         "sourceMap": true,
