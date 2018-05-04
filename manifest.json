@@ -1,0 +1,9 @@
+{
+  "short_name": "rogueish",
+  "name": "rogueish",
+  "start_url": "index.html",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "theme_color": "#000000"
+}
+

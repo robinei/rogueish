@@ -17,6 +17,10 @@ export class Vec2 {
         return Math.sqrt(dx * dx + dy * dy);
     }
 
+    mag() {
+        return Math.sqrt(this.x * this.x + this.y * this.y);
+    }
+
     get direction(): Direction | undefined {
         const dx = signum(this.x);
         const dy = signum(this.y);

@@ -238,6 +238,7 @@ class Game {
         document.addEventListener("keydown", this.onKeyDown);
         this.canvas.addEventListener("click", this.onClick);
         document.addEventListener("mousemove", this.onMouseMove);
+        document.addEventListener("touchstart", this.onTouchStart);
         this.contextManager.push(new GameContext(this.contextManager));
         this.display.redraw();
     }
@@ -306,6 +307,28 @@ class Game {
         this.cursorCell = cell;
         this.contextManager.dispatchMouseMove(x, y);
         this.display.redraw();
+    }
+
+    private onTouchStart = (e: TouchEvent) => {
+        if (e.changedTouches.length === 1) {
+            const touch = e.changedTouches[0];
+            const p = new Vec2(touch.clientX, touch.clientY);
+            const top = new Vec2(this.canvas.width / 2, 0);
+            const bottom = new Vec2(this.canvas.width / 2, this.canvas.height);
+            const left = new Vec2(0, this.canvas.height / 2);
+            const right = new Vec2(this.canvas.width, this.canvas.height / 2);
+            const dirs = [
+                [Direction.North, p.sub(top).mag()],
+                [Direction.South, p.sub(bottom).mag()],
+                [Direction.West, p.sub(left).mag()],
+                [Direction.East, p.sub(right).mag()],
+            ];
+            dirs.sort((a, b) => a[1] - b[1]);
+            //console.log(p);
+            //console.log(dirs[0][1]);
+            player.move(dirs[0][0]);
+            this.display.redraw();
+        }
     }
 
     private static readNumberSetting(name: string, defValue: number = 0): number {
