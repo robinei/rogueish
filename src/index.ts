@@ -345,4 +345,5 @@ class Game {
 }
 
 
+console.log("Starting game...");
 new Game().start();
