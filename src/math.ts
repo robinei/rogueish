@@ -4,6 +4,10 @@ import { Direction, dirDX, dirDY } from "./direction";
 export class Vec2 {
     constructor(public x: number, public y: number) { }
 
+    static fromDir(dir: Direction): Vec2 {
+        return new Vec2(dirDX[dir], dirDY[dir]);
+    }
+
     equals(p: Vec2): boolean {
         if (!p) {
             return false;
@@ -39,6 +43,14 @@ export class Vec2 {
 
     add(p: Vec2): Vec2 {
         return new Vec2(this.x + p.x, this.y + p.y);
+    }
+
+    mul(p: Vec2): Vec2 {
+        return new Vec2(this.x * p.x, this.y * p.y);
+    }
+
+    div(p: Vec2): Vec2 {
+        return new Vec2(this.x / p.x, this.y / p.y);
     }
 
     toString(): string {

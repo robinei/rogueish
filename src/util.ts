@@ -1,5 +1,13 @@
 import { stdGen } from "./mtrand";
 
+export function isMobileSafari() {
+    return navigator.userAgent.match(/(iPod|iPhone|iPad)/) && navigator.userAgent.match(/AppleWebKit/);
+}
+
+export function isInteger(value: any) {
+    return typeof value === "number" && isFinite(value) && Math.floor(value) === value;
+}
+
 export function getObjectName(object: any): string {
     const funcNameRegex = /function (.{1,})\(/;
     const results = (funcNameRegex).exec(object.constructor.toString());

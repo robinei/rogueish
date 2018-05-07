@@ -239,6 +239,7 @@ class Game {
         this.canvas.addEventListener("click", this.onClick);
         document.addEventListener("mousemove", this.onMouseMove);
         document.addEventListener("touchstart", this.onTouchStart);
+        document.addEventListener("touchmove", this.onTouchMove);
         this.contextManager.push(new GameContext(this.contextManager));
         this.display.redraw();
     }
@@ -257,8 +258,6 @@ class Game {
     }
 
     private resizeCanvas = () => {
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = window.innerHeight;
         this.display.reshape(true);
     }
 
@@ -313,33 +312,34 @@ class Game {
         if (e.changedTouches.length === 1) {
             const touch = e.changedTouches[0];
             const p = new Vec2(touch.clientX, touch.clientY);
-            const top = new Vec2(this.canvas.width / 2, 0);
-            const bottom = new Vec2(this.canvas.width / 2, this.canvas.height);
-            const left = new Vec2(0, this.canvas.height / 2);
-            const right = new Vec2(this.canvas.width, this.canvas.height / 2);
-            const dirs = [
-                [Direction.North, p.sub(top).mag()],
-                [Direction.South, p.sub(bottom).mag()],
-                [Direction.West, p.sub(left).mag()],
-                [Direction.East, p.sub(right).mag()],
-            ];
+            const dirs = [];
+            for (let i = 0; i < 8; ++i) {
+                const cornerPoint = Vec2.fromDir(i).add(new Vec2(1, 1)).mul(new Vec2(this.canvas.width * 0.5, this.canvas.height * 0.5));
+                dirs.push([i as Direction, p.sub(cornerPoint).mag()]);
+            }
             dirs.sort((a, b) => a[1] - b[1]);
-            //console.log(p);
-            //console.log(dirs[0][1]);
             player.move(dirs[0][0]);
             this.display.redraw();
         }
     }
 
+    private onTouchMove = (e: TouchEvent) => {
+        e.preventDefault();
+    }
+
     private static readNumberSetting(name: string, defValue: number = 0): number {
-        if (localStorage) {
-            const val = localStorage.getItem(name);
-            if (val) {
-                const num = parseInt(val, 10);
-                if (!isNaN(num)) {
-                    return num;
+        try {
+            if (localStorage) {
+                const val = localStorage.getItem(name);
+                if (val) {
+                    const num = parseInt(val, 10);
+                    if (!isNaN(num)) {
+                        return num;
+                    }
                 }
             }
+        } catch (e) {
+            console.log(`error reading value: ${name}. returning default value: ${defValue}. error: ${e}`);
         }
         return defValue;
     }
@@ -369,4 +369,5 @@ class Game {
 
 
 console.log("Starting game...");
+console.log("window.devicePixelRatio: " + window.devicePixelRatio);
 new Game().start();

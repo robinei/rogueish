@@ -1,4 +1,5 @@
 import { Color, colors, toStringColor } from "./color";
+import { isMobileSafari, isInteger } from "./util";
 
 
 export {
@@ -24,6 +25,10 @@ interface Display {
 }
 
 function makeDisplay(canvas: HTMLCanvasElement, fontImage: HTMLImageElement, onDraw: () => void): Display {
+    if (isMobileSafari()) {
+        console.log("Prefering 2D canvas on iOS.");
+        return makeCanvasDisplay(canvas, fontImage, onDraw);
+    }
     const display = new GLCanvasDisplay(canvas, fontImage, onDraw);
     if (display.isValid()) {
         console.log("Creating WebGL display.");
@@ -53,6 +58,86 @@ function makeNullDisplay(): Display {
         destroy: () => {},
     };
 }
+
+
+
+abstract class BaseDisplay {
+    count = 0;
+    width = 0;
+    height = 0;
+    char = [0];
+    fg = [colors.white];
+    bg = [colors.black];
+
+    protected onReshaped?: () => void;
+
+    readonly charWidth: number;
+    readonly charHeight: number;
+    private wantRedraw: boolean = false;
+    private redrawScheduled: boolean = false;
+
+    constructor(
+        protected readonly canvas: HTMLCanvasElement,
+        protected readonly fontImage: HTMLImageElement,
+        protected readonly onDraw: () => void,
+    ) {
+        this.charWidth = ~~(fontImage.naturalWidth / 16);
+        this.charHeight = ~~(fontImage.naturalHeight / 16);
+    }
+
+    abstract draw(): void;
+
+    redraw() {
+        if (this.redrawScheduled) {
+            this.wantRedraw = true;
+        } else {
+            this.scheduleRedraw();
+        }
+    }
+
+    scheduleRedraw() {
+        this.redrawScheduled = true;
+        window.requestAnimationFrame(() => {
+            this.redrawScheduled = false;
+            this.draw();
+            if (this.wantRedraw) {
+                this.wantRedraw = false;
+                this.scheduleRedraw();
+            }
+        });
+    }
+
+    reshape(force: boolean) {
+        const width = Math.ceil(window.innerWidth / this.charWidth);
+        const height = Math.ceil(window.innerHeight / this.charHeight);
+        if (!force && width === this.width && height === this.height) {
+            return;
+        }
+        if (isInteger(window.devicePixelRatio)) {
+            this.canvas.classList.add("pixelated-canvas");
+        } else {
+            this.canvas.classList.remove("pixelated-canvas");
+        }
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+        this.width = width;
+        this.height = height;
+        this.count = width * height;
+        console.log(`Reshaped display: ${width} x ${height} (${this.canvas.width} x ${this.canvas.height})`);
+
+        this.char.length = this.count;
+        this.fg.length = this.count;
+        this.bg.length = this.count;
+
+        if (this.onReshaped) {
+            this.onReshaped();
+        }
+
+        this.redraw();
+    }
+}
+
+
 
 
 
@@ -97,46 +182,8 @@ const FRAGMENT_SHADER_CODE = [
     "}",
 ].join("\n");
 
-
-abstract class BaseDisplay {
-    private wantRedraw: boolean = false;
-    private redrawScheduled: boolean = false;
-
-    abstract draw(): void;
-
-    redraw() {
-        if (this.redrawScheduled) {
-            this.wantRedraw = true;
-        } else {
-            this.scheduleRedraw();
-        }
-    }
-
-    scheduleRedraw() {
-        this.redrawScheduled = true;
-        window.requestAnimationFrame(() => {
-            this.redrawScheduled = false;
-            this.draw();
-            if (this.wantRedraw) {
-                this.wantRedraw = false;
-                this.scheduleRedraw();
-            }
-        });
-    }
-}
-
 class GLCanvasDisplay extends BaseDisplay implements Display {
-    readonly charWidth: number;
-    readonly charHeight: number;
-    count = 0;
-    width = 0;
-    height = 0;
-    readonly char = [0];
-    readonly fg = [colors.white];
-    readonly bg = [colors.black];
-
     private gl: WebGLRenderingContext | undefined;
-    private onReshape?: () => void;
 
     private fontTexture?: WebGLTexture;
     private atlasTexture?: WebGLTexture;
@@ -145,15 +192,12 @@ class GLCanvasDisplay extends BaseDisplay implements Display {
     private removeEventListeners: () => void;
     private deleteGLHandles?: () => void;
 
-
     constructor(
-        private readonly canvas: HTMLCanvasElement,
-        private readonly fontImage: HTMLImageElement,
-        private readonly onDraw: () => void,
+        canvas: HTMLCanvasElement,
+        fontImage: HTMLImageElement,
+        onDraw: () => void,
     ) {
-        super();
-        this.charWidth = ~~(fontImage.naturalWidth / 16);
-        this.charHeight = ~~(fontImage.naturalHeight / 16);
+        super(canvas, fontImage, onDraw);
 
         const onError = (e: WebGLContextEvent) => {
             console.log("Error creating WebGL context: " + e.statusMessage);
@@ -197,28 +241,6 @@ class GLCanvasDisplay extends BaseDisplay implements Display {
             }
             this.gl = undefined;
         }
-    }
-
-    reshape(force: boolean) {
-        const width = Math.ceil(this.canvas.width / this.charWidth);
-        const height = Math.ceil(this.canvas.height / this.charHeight);
-        if (!force && width === this.width && height === this.height) {
-            return;
-        }
-        this.width = width;
-        this.height = height;
-        const count = this.count = width * height;
-        console.log(`Reshaped display: ${width} x ${height}`);
-
-        this.char.length = count;
-        this.fg.length = count;
-        this.bg.length = count;
-
-        if (this.onReshape) {
-            this.onReshape();
-        }
-
-        this.redraw();
     }
 
     draw() {
@@ -340,7 +362,7 @@ class GLCanvasDisplay extends BaseDisplay implements Display {
             this.atlasTexture = undefined;
         };
 
-        this.onReshape = () => {
+        this.onReshaped = () => {
             if (!this.isValid()) {
                 return;
             }
@@ -445,18 +467,7 @@ function makeTexture(gl: WebGLRenderingContext): WebGLTexture {
 
 
 
-
-
 class NormalCanvasDisplay extends BaseDisplay implements Display {
-    readonly charWidth: number;
-    readonly charHeight: number;
-    width = 0;
-    height = 0;
-    count = 0;
-    char = [0];
-    fg = [colors.white];
-    bg = [colors.black];
-
     private prevWidth = 0;
     private prevHeight = 0;
     private prevChar = [0];
@@ -466,46 +477,34 @@ class NormalCanvasDisplay extends BaseDisplay implements Display {
     private readonly dirty = [false];
     private allDirty = true;
 
-    private readonly context: CanvasRenderingContext2D;
-
+    private context?: CanvasRenderingContext2D;
 
     constructor(
-        private readonly canvas: HTMLCanvasElement,
-        private readonly fontImage: HTMLImageElement,
-        private readonly onDraw: () => void,
+        canvas: HTMLCanvasElement,
+        fontImage: HTMLImageElement,
+        onDraw: () => void,
     ) {
-        super();
-        const context = canvas.getContext("2d");
-        if (!context) {
-            throw new Error("error getting context");
-        }
-        this.context = context;
-        this.charWidth = ~~(fontImage.naturalWidth / 16);
-        this.charHeight = ~~(fontImage.naturalHeight / 16);
+        super(canvas, fontImage, onDraw);
         this.reshape(true);
     }
 
     destroy(): void {
     }
 
-    reshape(force: boolean) {
-        const width = Math.ceil(this.canvas.width / this.charWidth);
-        const height = Math.ceil(this.canvas.height / this.charHeight);
-        if (!force && width === this.width && height === this.height) {
-            return;
-        }
-        this.width = width;
-        this.height = height;
-        const count = this.count = width * height;
-        console.log(`Reshaped display: ${width} x ${height}`);
-
-        this.char.length = count;
-        this.fg.length = count;
-        this.bg.length = count;
-        this.dirty.length = count;
+    onReshaped = () => {
+        this.dirty.length = this.count;
         this.allDirty = true;
 
-        this.redraw();
+        const context = this.canvas.getContext("2d");
+        if (!context) {
+            throw new Error("error getting context");
+        }
+        this.context = context;
+        const smooth = !isInteger(window.devicePixelRatio);
+        context.imageSmoothingEnabled = smooth;
+        context.mozImageSmoothingEnabled = smooth;
+        context.webkitImageSmoothingEnabled = smooth;
+        (context as any).msImageSmoothingEnabled = smooth;
     }
 
     draw() {
@@ -515,6 +514,10 @@ class NormalCanvasDisplay extends BaseDisplay implements Display {
             prevWidth, prevHeight, prevChar, prevFg, prevBg,
             dirty, allDirty, context, charWidth, charHeight, fontImage,
         } = this;
+
+        if (!context) {
+            return;
+        }
 
         char.length = count;
         fg.length = count;
