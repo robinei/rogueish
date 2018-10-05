@@ -502,8 +502,8 @@ class NormalCanvasDisplay extends BaseDisplay implements Display {
         this.context = context;
         const smooth = !isInteger(window.devicePixelRatio);
         context.imageSmoothingEnabled = smooth;
-        context.mozImageSmoothingEnabled = smooth;
-        context.webkitImageSmoothingEnabled = smooth;
+        (context as any).mozImageSmoothingEnabled = smooth;
+        (context as any).webkitImageSmoothingEnabled = smooth;
         (context as any).msImageSmoothingEnabled = smooth;
     }
 
